@@ -10,6 +10,7 @@ pub mod robotics;
 pub mod research;
 pub mod ros2_bridge;
 pub mod monitoring;
+pub mod data_quality;
 
 use schema::Schema;
 use generator::WorldGenerator;
