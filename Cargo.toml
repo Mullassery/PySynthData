@@ -1,11 +1,13 @@
 [package]
 name = "pysynthdata"
-version = "0.1.0"
+version = "0.2.0"
 edition = "2021"
-description = "Generate complete synthetic worlds from schemas, data, or natural language"
-repository = "https://github.com/Mullassery/pysynthdata"
+description = "Generate complete synthetic worlds from schemas, data, or natural language. Production-ready with compliance, governance, and enterprise features."
+repository = "https://github.com/Mullassery/PySynthData"
 license = "Apache-2.0"
-publish = false
+publish = true
+authors = ["Georgi Mullassery <mullassery@gmail.com>"]
+keywords = ["synthetic-data", "simulation", "robotics", "compliance", "enterprise"]
 
 [dependencies]
 pyo3 = { version = "0.21", features = ["abi3-py310"] }
