@@ -1,0 +1,96 @@
+entities:
+  Customer:
+    fields:
+      id:
+        type: uuid
+        unique: true
+      name:
+        type: string
+      email:
+        type: string
+        unique: true
+      phone:
+        type: string
+      created_at:
+        type: datetime
+      status:
+        type: enum(active, suspended, at_risk, closed)
+    primary_key: id
+
+  Account:
+    fields:
+      id:
+        type: uuid
+        unique: true
+      customer_id:
+        type: uuid
+      account_type:
+        type: enum(checking, savings, money_market, cd)
+      balance:
+        type: float
+      created_at:
+        type: datetime
+      closed_at:
+        type: datetime
+        nullable: true
+    primary_key: id
+
+  Transaction:
+    fields:
+      id:
+        type: uuid
+        unique: true
+      account_id:
+        type: uuid
+      merchant_id:
+        type: uuid
+      amount:
+        type: float
+      timestamp:
+        type: datetime
+      type:
+        type: enum(debit, credit, transfer)
+    primary_key: id
+
+  Merchant:
+    fields:
+      id:
+        type: uuid
+        unique: true
+      name:
+        type: string
+      category:
+        type: enum(grocery, retail, restaurant, gas, utilities, other)
+      created_at:
+        type: datetime
+    primary_key: id
+
+relationships:
+  - from_entity: Customer
+    to_entity: Account
+    from_field: id
+    to_field: customer_id
+    cardinality: 1:n
+
+  - from_entity: Account
+    to_entity: Transaction
+    from_field: id
+    to_field: account_id
+    cardinality: 1:n
+
+  - from_entity: Merchant
+    to_entity: Transaction
+    from_field: id
+    to_field: merchant_id
+    cardinality: 1:n
+
+constraints:
+  - constraint_type: range
+    entity: Account
+    field: balance
+    value: "0-1000000"
+
+  - constraint_type: range
+    entity: Transaction
+    field: amount
+    value: "0.01-50000"
