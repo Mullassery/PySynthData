@@ -11,6 +11,7 @@ pub mod research;
 pub mod ros2_bridge;
 pub mod monitoring;
 pub mod data_quality;
+pub mod unconventional_data;
 
 use schema::Schema;
 use generator::WorldGenerator;
