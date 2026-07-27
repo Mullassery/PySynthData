@@ -9,6 +9,7 @@ pub mod behaviors;
 pub mod robotics;
 pub mod research;
 pub mod ros2_bridge;
+pub mod monitoring;
 
 use schema::Schema;
 use generator::WorldGenerator;
