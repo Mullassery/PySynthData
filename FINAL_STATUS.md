@@ -369,10 +369,10 @@ pysynthdata/
 
 ## Contact & Development
 
-**Project**: PySynthData (World Compiler)  
+**Project**: PySynthData  
 **Built By**: Georgi Mullassery (mullassery@gmail.com)  
 **Repository**: `/Users/georgimullassery/pysynthdata`  
-**License**: Apache 2.0  
+**License**: Proprietary - All rights reserved  
 
 ---
 

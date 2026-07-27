@@ -205,7 +205,7 @@ pytest tests/
 
 ## License
 
-Apache 2.0 - See [LICENSE](LICENSE) for details.
+Proprietary - All rights reserved. Contact mullassery@gmail.com for licensing inquiries.
 
 ## Contributing
 
