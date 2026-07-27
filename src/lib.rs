@@ -13,6 +13,7 @@ pub mod monitoring;
 pub mod data_quality;
 pub mod unconventional_data;
 pub mod real_world_mess;
+pub mod enterprise;
 
 use schema::Schema;
 use generator::WorldGenerator;
