@@ -178,10 +178,9 @@ impl DataQualityDegradation {
             let row = &mut data[row_idx];
 
             // Swap or modify related fields to create logical inconsistency
-            if let (Some(val1), Some(val2)) = (row.get_mut(related_fields.0), row.get_mut(related_fields.1)) {
-                let temp = val1.clone();
-                *val1 = val2.clone();
-                *val2 = temp;
+            if let (Some(val1), Some(val2)) = (row.get(related_fields.0).cloned(), row.get(related_fields.1).cloned()) {
+                row.insert(related_fields.0.to_string(), val2);
+                row.insert(related_fields.1.to_string(), val1);
             }
         }
     }

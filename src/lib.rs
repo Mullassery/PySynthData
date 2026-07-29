@@ -19,6 +19,7 @@ use schema::Schema;
 use generator::WorldGenerator;
 
 #[pymodule]
+#[pyo3(name = "_core")]
 fn pysynthdata(_py: Python, m: &pyo3::Bound<pyo3::types::PyModule>) -> PyResult<()> {
     m.add_class::<PySchema>()?;
     m.add_class::<PyWorldGenerator>()?;

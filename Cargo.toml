@@ -1,6 +1,6 @@
 [package]
 name = "pysynthdata"
-version = "0.2.0"
+version = "0.2.1"
 edition = "2021"
 description = "Generate complete synthetic worlds from schemas, data, or natural language. Production-ready with compliance, governance, and enterprise features."
 repository = "https://github.com/Mullassery/PySynthData"
@@ -10,7 +10,7 @@ authors = ["Georgi Mullassery <mullassery@gmail.com>"]
 keywords = ["synthetic-data", "simulation", "robotics", "compliance", "enterprise"]
 
 [dependencies]
-pyo3 = { version = "0.21", features = ["abi3-py310"] }
+pyo3 = { version = "0.22", features = ["abi3-py310"] }
 serde = { version = "1.0", features = ["derive"] }
 serde_yaml = "0.9"
 serde_json = "1.0"

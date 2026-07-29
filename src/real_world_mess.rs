@@ -370,8 +370,9 @@ impl RealWorldMessGenerator {
 
     fn inject_partial_batches(&mut self, data: &mut [HashMap<String, String>]) {
         // In later rows, some fields go missing (batch processing stopped mid-way)
+        let data_len = data.len();
         for (i, row) in data.iter_mut().enumerate() {
-            if i > data.len() / 2 && self.rng.gen_bool(0.1) {
+            if i > data_len / 2 && self.rng.gen_bool(0.1) {
                 let keys: Vec<_> = row.keys().cloned().collect();
                 if !keys.is_empty() {
                     let remove_key = keys[self.rng.gen_range(0..keys.len())].clone();
@@ -394,10 +395,11 @@ impl RealWorldMessGenerator {
 
     fn inject_sensor_drift(&mut self, data: &mut [HashMap<String, String>]) {
         // Measurement gradually shifts over time (calibration drift)
+        let data_len = data.len() as f64;
         for (i, row) in data.iter_mut().enumerate() {
             if let Some((_, value)) = row.iter_mut().next() {
                 if let Ok(num) = value.parse::<f64>() {
-                    let drift = (i as f64 / data.len() as f64) * 10.0; // Drift 0-10 units
+                    let drift = (i as f64 / data_len) * 10.0; // Drift 0-10 units
                     *value = format!("{:.2}", num + drift);
                 }
             }
@@ -482,7 +484,7 @@ pub struct MessAnalysis {
     pub records_with_issues: usize,
     pub issue_categories: HashMap<String, usize>,
     pub severity_score: f64,
-    pub "realistic_chaos_factor": f64,
+    pub realistic_chaos_factor: f64,
 }
 
 impl MessAnalysis {
@@ -492,7 +494,7 @@ impl MessAnalysis {
             records_with_issues: affected,
             issue_categories: HashMap::new(),
             severity_score: affected as f64 / total as f64,
-            "realistic_chaos_factor": chaos,
+            realistic_chaos_factor: chaos,
         }
     }
 }
