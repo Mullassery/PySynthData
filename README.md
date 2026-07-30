@@ -2,7 +2,12 @@
 
 Generate complete synthetic worlds from schemas, data, or natural language. Production-ready with compliance, governance, and enterprise features.
 
-**Status**: ✅ Production Ready (v0.2.0) | **LOC**: 4,900+ | **Modules**: 16 | **Python**: 3.10+
+**Status**: ✅ Production Ready (v0.2.1) | **LOC**: 4,900+ | **Modules**: 16 | **Python**: 3.10-3.13
+
+### v0.2.1 Updates
+- 🐛 Fixed 4 Rust borrow checker violations for clean compilation
+- 🚀 PyO3 0.22 upgrade for Python 3.13 support
+- ✅ License metadata compliance
 
 ## What It Does
 
