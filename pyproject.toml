@@ -7,7 +7,7 @@ name = "pysynthdata"
 version = "0.2.1"
 description = "Generate complete synthetic worlds from schemas, data, or natural language. Production-ready with compliance, governance, and enterprise features."
 readme = "README.md"
-license = "Proprietary"
+license = {text = "Proprietary"}
 authors = [{name = "Georgi Mullassery", email = "mullassery@gmail.com"}]
 requires-python = ">=3.10"
 classifiers = [
