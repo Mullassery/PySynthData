@@ -1,50 +1,45 @@
-# PySynthData v2.0.0
+# PySynthData
 
-**Privacy-Preserving Synthetic Data (11 MCP tools)**
+**Generate realistic synthetic data at scale. Keep your real data private.**
 
-## Overview
+Create privacy-preserving datasets for AI training, testing, and demos without exposing sensitive information. Use real patterns without real risk.
 
-PySynthData is part of the unified **MCP 2.0 Mega-Platform** (207 tools across 18 projects). This project provides AI-native tools via Model Context Protocol (MCP 2.0).
+[![PyPI](https://img.shields.io/pypi/v/pysynthdata)](https://pypi.org/project/pysynthdata)
+[![Python 3.10+](https://img.shields.io/badge/Python-3.10%2B-blue)](https://www.python.org)
+[![License: Proprietary](https://img.shields.io/badge/License-Proprietary-blue.svg)](./LICENSE)
 
-## Features
+---
 
-- **MCP 2.0 Support**: Discoverable via MCP protocol protocol on port 8774
-- **Async Handlers**: All tools are async-first for high-performance execution
-- **Type-Safe**: 100% Python type hints throughout
-- **Zero External Dependencies**: Fallback implementations included
-- **Production-Ready**: Mock implementations ready for real data integration
+## 30-Second Start
 
-## Installation
+```python
+from pysynthdata import Synthesizer
 
-```bash
-pip install PySynthData
+# Learn patterns from real data
+synth = Synthesizer.from_dataframe(real_df)
+
+# Generate synthetic data (same patterns, no real data)
+synthetic_df = synth.generate(rows=10000)
+
+# Safe to share, train models, run demos
+print(f"Generated {len(synthetic_df)} rows - no privacy concerns")
 ```
 
-Wheels-only distribution (recommended for production):
+---
 
-```bash
-pip install --only-binary=:all: PySynthData
-```
+## Why PySynthData?
 
-## MCP 2.0 Integration
+**The Problem:**
+- Real datasets contain sensitive data (PII, financial, health)
+- Can't share data for AI training or testing
+- Demos expose live data
+- Compliance requires data anonymization
 
-Enable MCP tools on port **8774** (see MCP_QUICKSTART.md for details).
-
-AI systems discover all 207 tools across 18 projects, enabling:
-- Multi-project workflows
-- Intelligent query optimization (60-75% reduction in context usage)
-- Cross-database joins
-- Cost-optimized inference routing
-
-## Quick Start
-
-See [MCP_QUICKSTART.md](PySynthData/MCP_QUICKSTART.md) for detailed tool documentation.
-
-## Part of Unified Platform
-
-18 projects, 207 tools, 18 simultaneous MCP endpoints (8765-8782).
-
-**All tools discoverable via MCP protocol in a single connection.**
+**The Solution:**
+- Generate synthetic data with same statistical properties
+- No personally identifiable information
+- Scale to any size needed
+- Share freely for training, testing, demos
 
 ## Version History
 
