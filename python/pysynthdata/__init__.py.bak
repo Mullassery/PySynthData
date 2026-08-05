@@ -1,6 +1,6 @@
 """PySynthData: Generate complete synthetic worlds from schemas or data."""
 
-__version__ = "2.0.0"
+__version__ = "0.1.0"
 
 from pysynthdata.api import (
     WorldGenerator,
