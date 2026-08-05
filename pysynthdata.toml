@@ -1,0 +1,20 @@
+[mcp]
+enabled = true
+port = 8774
+discovery_method = "stdio"
+
+[mcp.tools]
+generate_synthetic_dataset = true
+estimate_data_quality = true
+check_privacy_compliance = true
+detect_pii_exposure = true
+anonymize_dataset = true
+check_fairness_bias = true
+debias_dataset = true
+validate_distribution_match = true
+augment_minority_class = true
+export_synthetic_data = true
+evaluate_synthetic_utility = true
+
+[mcp.security]
+require_auth = false

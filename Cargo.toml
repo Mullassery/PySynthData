@@ -28,10 +28,6 @@ indexmap = { version = "2.0", features = ["serde"] }
 tempfile = "3"
 approx = "0.5"
 
-[[bin]]
-name = "pysynthdata_cli"
-path = "src/bin/cli.rs"
-
 [lib]
 name = "pysynthdata"
 crate-type = ["cdylib", "rlib"]
