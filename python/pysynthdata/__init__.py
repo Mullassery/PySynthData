@@ -1,17 +1,28 @@
-"""PySynthData: Generate complete synthetic worlds from schemas or data."""
+"""PySynthData: Generate real synthetic data from a schema.
 
-__version__ = "2.0.0"
+`Schema` and `WorldGenerator` are thin Python wrappers around the compiled
+Rust `_core` extension, which does the actual row generation and quality
+scoring.
+"""
 
+__version__ = "0.3.0"
+
+from pysynthdata import _core
 from pysynthdata.api import (
     WorldGenerator,
     Schema,
+    GeneratedWorld,
     load_schema,
     load_schema_yaml,
+    load_schema_json,
 )
 
 __all__ = [
     "WorldGenerator",
     "Schema",
+    "GeneratedWorld",
     "load_schema",
     "load_schema_yaml",
+    "load_schema_json",
+    "_core",
 ]

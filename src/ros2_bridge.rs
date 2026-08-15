@@ -22,8 +22,8 @@ pub enum ROS2MessageType {
 }
 
 pub struct ROS2Publisher {
-    topic: String,
-    msg_type: ROS2MessageType,
+    pub topic: String,
+    pub msg_type: ROS2MessageType,
     queue_size: usize,
     messages: Vec<ROS2Message>,
 }
@@ -65,6 +65,12 @@ impl ROS2Publisher {
 pub struct ROS2SimulatorBridge {
     publishers: HashMap<String, ROS2Publisher>,
     subscribers: Vec<String>,
+}
+
+impl Default for ROS2SimulatorBridge {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 impl ROS2SimulatorBridge {
@@ -119,6 +125,12 @@ pub struct NavStack {
     pub controller: LocalController,
 }
 
+impl Default for NavStack {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl NavStack {
     pub fn new() -> Self {
         NavStack {
@@ -127,17 +139,36 @@ impl NavStack {
         }
     }
 
-    pub fn plan_path(&self, start_x: f64, start_y: f64, goal_x: f64, goal_y: f64) -> Vec<(f64, f64)> {
+    pub fn plan_path(
+        &self,
+        start_x: f64,
+        start_y: f64,
+        goal_x: f64,
+        goal_y: f64,
+    ) -> Vec<(f64, f64)> {
         self.planner.plan(start_x, start_y, goal_x, goal_y)
     }
 
-    pub fn compute_velocity(&self, current_x: f64, current_y: f64, target_x: f64, target_y: f64) -> (f64, f64) {
-        self.controller.compute_velocity(current_x, current_y, target_x, target_y)
+    pub fn compute_velocity(
+        &self,
+        current_x: f64,
+        current_y: f64,
+        target_x: f64,
+        target_y: f64,
+    ) -> (f64, f64) {
+        self.controller
+            .compute_velocity(current_x, current_y, target_x, target_y)
     }
 }
 
 pub struct PathPlanner {
     grid_resolution: f64,
+}
+
+impl Default for PathPlanner {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 impl PathPlanner {
@@ -168,6 +199,12 @@ pub struct LocalController {
     max_angular_velocity: f64,
 }
 
+impl Default for LocalController {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl LocalController {
     pub fn new() -> Self {
         LocalController {
@@ -176,7 +213,13 @@ impl LocalController {
         }
     }
 
-    pub fn compute_velocity(&self, current_x: f64, current_y: f64, target_x: f64, target_y: f64) -> (f64, f64) {
+    pub fn compute_velocity(
+        &self,
+        current_x: f64,
+        current_y: f64,
+        target_x: f64,
+        target_y: f64,
+    ) -> (f64, f64) {
         let dx = target_x - current_x;
         let dy = target_y - current_y;
 
@@ -200,22 +243,15 @@ mod tests {
 
     #[test]
     fn test_ros2_publisher_creation() {
-        let publisher = ROS2Publisher::new(
-            "/camera/image".to_string(),
-            ROS2MessageType::Image,
-            10,
-        );
+        let publisher = ROS2Publisher::new("/camera/image".to_string(), ROS2MessageType::Image, 10);
         assert_eq!(publisher.topic, "/camera/image");
         assert_eq!(publisher.msg_type, ROS2MessageType::Image);
     }
 
     #[test]
     fn test_publish_message() {
-        let mut publisher = ROS2Publisher::new(
-            "/camera/image".to_string(),
-            ROS2MessageType::Image,
-            10,
-        );
+        let mut publisher =
+            ROS2Publisher::new("/camera/image".to_string(), ROS2MessageType::Image, 10);
 
         publisher.publish(vec![1, 2, 3], 1000);
         assert_eq!(publisher.get_all().len(), 1);

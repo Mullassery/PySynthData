@@ -1,5 +1,5 @@
-use serde::{Deserialize, Serialize};
 use indexmap::IndexMap;
+use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Schema {
@@ -82,11 +82,14 @@ impl Schema {
     }
 
     pub fn add_entity(&mut self, name: String) {
-        self.entities.insert(name.clone(), Entity {
-            name,
-            fields: IndexMap::new(),
-            primary_key: None,
-        });
+        self.entities.insert(
+            name.clone(),
+            Entity {
+                name,
+                fields: IndexMap::new(),
+                primary_key: None,
+            },
+        );
     }
 
     pub fn add_field(&mut self, entity: &str, field: Field) -> Result<(), String> {

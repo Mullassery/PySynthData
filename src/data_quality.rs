@@ -1,16 +1,16 @@
-use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
 use rand::Rng;
+use serde::{Deserialize, Serialize};
+use std::collections::{HashMap, HashSet};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct DataQualityConfig {
-    pub missing_value_rate: f64,           // 0.0 - 0.3 (0-30%)
-    pub duplicate_rate: f64,               // 0.0 - 0.1 (0-10%)
-    pub outlier_rate: f64,                 // 0.0 - 0.05 (0-5%)
-    pub typo_rate: f64,                    // 0.0 - 0.05 (0-5%)
-    pub inconsistency_rate: f64,           // 0.0 - 0.1 (0-10%)
-    pub temporal_inconsistency_rate: f64,  // 0.0 - 0.05 (0-5%)
-    pub null_clustering: bool,             // Nulls cluster together (realistic)
+    pub missing_value_rate: f64,          // 0.0 - 0.3 (0-30%)
+    pub duplicate_rate: f64,              // 0.0 - 0.1 (0-10%)
+    pub outlier_rate: f64,                // 0.0 - 0.05 (0-5%)
+    pub typo_rate: f64,                   // 0.0 - 0.05 (0-5%)
+    pub inconsistency_rate: f64,          // 0.0 - 0.1 (0-10%)
+    pub temporal_inconsistency_rate: f64, // 0.0 - 0.05 (0-5%)
+    pub null_clustering: bool,            // Nulls cluster together (realistic)
     pub field_specific_issues: HashMap<String, FieldQualityIssue>,
 }
 
@@ -24,22 +24,22 @@ pub struct FieldQualityIssue {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum OutlierPattern {
-    Extreme,         // Very large/small values
-    Impossible,      // Values that violate domain logic
-    Sparse,          // Rare but valid values
-    Clustered,       // Groups of outliers (e.g., fraud patterns)
+    Extreme,    // Very large/small values
+    Impossible, // Values that violate domain logic
+    Sparse,     // Rare but valid values
+    Clustered,  // Groups of outliers (e.g., fraud patterns)
 }
 
 impl Default for DataQualityConfig {
     fn default() -> Self {
         DataQualityConfig {
-            missing_value_rate: 0.02,              // 2% missing
-            duplicate_rate: 0.005,                 // 0.5% duplicates
-            outlier_rate: 0.03,                    // 3% outliers
-            typo_rate: 0.01,                       // 1% typos
-            inconsistency_rate: 0.02,              // 2% inconsistencies
-            temporal_inconsistency_rate: 0.01,     // 1% temporal issues
-            null_clustering: true,                 // Nulls cluster
+            missing_value_rate: 0.02,          // 2% missing
+            duplicate_rate: 0.005,             // 0.5% duplicates
+            outlier_rate: 0.03,                // 3% outliers
+            typo_rate: 0.01,                   // 1% typos
+            inconsistency_rate: 0.02,          // 2% inconsistencies
+            temporal_inconsistency_rate: 0.01, // 1% temporal issues
+            null_clustering: true,             // Nulls cluster
             field_specific_issues: HashMap::new(),
         }
     }
@@ -57,11 +57,7 @@ impl DataQualityDegradation {
         }
     }
 
-    pub fn inject_missing_values(
-        &mut self,
-        data: &mut Vec<HashMap<String, String>>,
-        rate: f64,
-    ) {
+    pub fn inject_missing_values(&mut self, data: &mut [HashMap<String, String>], rate: f64) {
         if data.is_empty() {
             return;
         }
@@ -75,8 +71,9 @@ impl DataQualityDegradation {
 
             if !row.is_empty() {
                 let field_idx = self.rng.gen_range(0..row.len());
-                let field_name = row.keys().nth(field_idx).unwrap().clone();
-                row.insert(field_name, "NULL".to_string());
+                if let Some(field_name) = row.keys().nth(field_idx).cloned() {
+                    row.insert(field_name, "NULL".to_string());
+                }
             }
         }
     }
@@ -98,7 +95,7 @@ impl DataQualityDegradation {
 
     pub fn inject_outliers(
         &mut self,
-        data: &mut Vec<HashMap<String, String>>,
+        data: &mut [HashMap<String, String>],
         field_name: &str,
         rate: f64,
         pattern: &OutlierPattern,
@@ -115,7 +112,7 @@ impl DataQualityDegradation {
             let outlier_value = match pattern {
                 OutlierPattern::Extreme => {
                     if self.rng.gen_bool(0.5) {
-                        "999999.99".to_string()  // Extreme high
+                        "999999.99".to_string() // Extreme high
                     } else {
                         "-999999.99".to_string() // Extreme low
                     }
@@ -135,7 +132,12 @@ impl DataQualityDegradation {
         }
     }
 
-    pub fn inject_typos(&mut self, data: &mut Vec<HashMap<String, String>>, field_name: &str, rate: f64) {
+    pub fn inject_typos(
+        &mut self,
+        data: &mut [HashMap<String, String>],
+        field_name: &str,
+        rate: f64,
+    ) {
         if data.is_empty() {
             return;
         }
@@ -162,7 +164,7 @@ impl DataQualityDegradation {
 
     pub fn inject_inconsistencies(
         &mut self,
-        data: &mut Vec<HashMap<String, String>>,
+        data: &mut [HashMap<String, String>],
         related_fields: (&str, &str),
         rate: f64,
     ) {
@@ -178,7 +180,10 @@ impl DataQualityDegradation {
             let row = &mut data[row_idx];
 
             // Swap or modify related fields to create logical inconsistency
-            if let (Some(val1), Some(val2)) = (row.get(related_fields.0).cloned(), row.get(related_fields.1).cloned()) {
+            if let (Some(val1), Some(val2)) = (
+                row.get(related_fields.0).cloned(),
+                row.get(related_fields.1).cloned(),
+            ) {
                 row.insert(related_fields.0.to_string(), val2);
                 row.insert(related_fields.1.to_string(), val1);
             }
@@ -187,7 +192,7 @@ impl DataQualityDegradation {
 
     pub fn inject_temporal_inconsistencies(
         &mut self,
-        data: &mut Vec<HashMap<String, String>>,
+        data: &mut [HashMap<String, String>],
         timestamp_field: &str,
         rate: f64,
     ) {
@@ -232,7 +237,12 @@ impl DataQualityDegradation {
             }
             // Generic outlier injection for unspecified fields
             if !config.field_specific_issues.is_empty() {
-                self.inject_outliers(data, "amount", config.outlier_rate, &OutlierPattern::Extreme);
+                self.inject_outliers(
+                    data,
+                    "amount",
+                    config.outlier_rate,
+                    &OutlierPattern::Extreme,
+                );
             }
         }
 
@@ -244,13 +254,25 @@ impl DataQualityDegradation {
 
         if config.inconsistency_rate > 0.0 {
             // Inject cross-field inconsistencies
-            self.inject_inconsistencies(data, ("start_date", "end_date"), config.inconsistency_rate);
+            self.inject_inconsistencies(
+                data,
+                ("start_date", "end_date"),
+                config.inconsistency_rate,
+            );
             self.inject_inconsistencies(data, ("status", "balance"), config.inconsistency_rate);
         }
 
         if config.temporal_inconsistency_rate > 0.0 {
-            self.inject_temporal_inconsistencies(data, "created_at", config.temporal_inconsistency_rate);
-            self.inject_temporal_inconsistencies(data, "timestamp", config.temporal_inconsistency_rate);
+            self.inject_temporal_inconsistencies(
+                data,
+                "created_at",
+                config.temporal_inconsistency_rate,
+            );
+            self.inject_temporal_inconsistencies(
+                data,
+                "timestamp",
+                config.temporal_inconsistency_rate,
+            );
         }
     }
 }
@@ -273,29 +295,52 @@ impl DataQualityAnalyzer {
         let total = data.len();
         let mut missing_count = 0;
         let mut outlier_count = 0;
-        let mut inconsistent_count = 0;
+        // Generic logical-inconsistency detection (e.g. "end_date before
+        // start_date") would require knowing which fields are semantically
+        // related, which this row-shape (arbitrary string-keyed maps) does
+        // not carry. Rather than fabricate a number, this is left at 0 and
+        // documented as unsupported, the same way the MCP tool handlers
+        // return `not_implemented` instead of a fake result.
+        let inconsistent_count = 0;
         let mut temporal_issue_count = 0;
 
         for row in data {
-            for (_, value) in row.iter() {
+            for value in row.values() {
                 if value == "NULL" {
                     missing_count += 1;
                 }
                 if value.contains("OFFSET") {
                     temporal_issue_count += 1;
                 }
-                if value.contains("INVALID") || value.contains("ANOMALY") || value.contains("FRAUD") {
+                if value.contains("INVALID") || value.contains("ANOMALY") || value.contains("FRAUD")
+                {
                     outlier_count += 1;
                 }
             }
         }
 
-        let duplicate_count = 0; // Would need additional logic to track
+        // Real duplicate detection: a row is a duplicate if its full
+        // (sorted) field contents exactly match a row seen earlier. Each
+        // repeat beyond the first occurrence counts as one duplicate.
+        let mut seen_rows: HashSet<Vec<(String, String)>> = HashSet::new();
+        let mut duplicate_count = 0;
+        for row in data {
+            let mut canonical: Vec<(String, String)> =
+                row.iter().map(|(k, v)| (k.clone(), v.clone())).collect();
+            canonical.sort();
+            if !seen_rows.insert(canonical) {
+                duplicate_count += 1;
+            }
+        }
 
         let quality_score = if total == 0 {
             1.0
         } else {
-            let defects = missing_count + outlier_count + inconsistent_count + temporal_issue_count;
+            let defects = missing_count
+                + duplicate_count
+                + outlier_count
+                + inconsistent_count
+                + temporal_issue_count;
             1.0 - (defects as f64 / (total as f64 * 5.0)).min(1.0)
         };
 
@@ -316,6 +361,31 @@ mod tests {
     use super::*;
 
     #[test]
+    fn test_analyze_detects_real_duplicates() {
+        let row = |id: &str, name: &str| -> HashMap<String, String> {
+            [
+                ("id".to_string(), id.to_string()),
+                ("name".to_string(), name.to_string()),
+            ]
+            .into_iter()
+            .collect()
+        };
+        let data = vec![
+            row("1", "Alice"),
+            row("2", "Bob"),
+            row("1", "Alice"), // exact duplicate of row 0
+            row("3", "Carol"),
+            row("1", "Alice"), // exact duplicate of row 0 again
+        ];
+
+        let metrics = DataQualityAnalyzer::analyze(&data);
+        assert_eq!(metrics.duplicate_records, 2);
+
+        let no_dupes = DataQualityAnalyzer::analyze(&data[..2]);
+        assert_eq!(no_dupes.duplicate_records, 0);
+    }
+
+    #[test]
     fn test_quality_config_defaults() {
         let config = DataQualityConfig::default();
         assert_eq!(config.missing_value_rate, 0.02);
@@ -327,12 +397,21 @@ mod tests {
     fn test_inject_missing_values() {
         let mut degrader = DataQualityDegradation::new(42);
         let mut data = vec![
-            [("name".to_string(), "John".to_string())].iter().cloned().collect(),
-            [("name".to_string(), "Jane".to_string())].iter().cloned().collect(),
+            [("name".to_string(), "John".to_string())]
+                .iter()
+                .cloned()
+                .collect(),
+            [("name".to_string(), "Jane".to_string())]
+                .iter()
+                .cloned()
+                .collect(),
         ];
 
         degrader.inject_missing_values(&mut data, 0.5);
-        let null_count = data.iter().filter(|r| r.get("name").map_or(false, |v| v == "NULL")).count();
+        let null_count = data
+            .iter()
+            .filter(|r| r.get("name").is_some_and(|v| v == "NULL"))
+            .count();
         assert!(null_count > 0);
     }
 
@@ -341,7 +420,12 @@ mod tests {
         let mut degrader = DataQualityDegradation::new(42);
         let original_len = 10;
         let mut data: Vec<HashMap<String, String>> = (0..original_len)
-            .map(|i| [("id".to_string(), i.to_string())].iter().cloned().collect())
+            .map(|i| {
+                [("id".to_string(), i.to_string())]
+                    .iter()
+                    .cloned()
+                    .collect()
+            })
             .collect();
 
         degrader.inject_duplicates(&mut data, 0.2);
@@ -351,9 +435,10 @@ mod tests {
     #[test]
     fn test_inject_outliers_extreme() {
         let mut degrader = DataQualityDegradation::new(42);
-        let mut data = vec![
-            [("amount".to_string(), "100".to_string())].iter().cloned().collect(),
-        ];
+        let mut data = vec![[("amount".to_string(), "100".to_string())]
+            .iter()
+            .cloned()
+            .collect()];
 
         degrader.inject_outliers(&mut data, "amount", 1.0, &OutlierPattern::Extreme);
         let value = data[0].get("amount").unwrap();
@@ -362,15 +447,21 @@ mod tests {
 
     #[test]
     fn test_data_quality_analyzer() {
-        let mut data = vec![
-            [("id".to_string(), "1".to_string()), ("status".to_string(), "active".to_string())]
-                .iter()
-                .cloned()
-                .collect(),
-            [("id".to_string(), "2".to_string()), ("status".to_string(), "NULL".to_string())]
-                .iter()
-                .cloned()
-                .collect(),
+        let data = vec![
+            [
+                ("id".to_string(), "1".to_string()),
+                ("status".to_string(), "active".to_string()),
+            ]
+            .iter()
+            .cloned()
+            .collect(),
+            [
+                ("id".to_string(), "2".to_string()),
+                ("status".to_string(), "NULL".to_string()),
+            ]
+            .iter()
+            .cloned()
+            .collect(),
         ];
 
         let metrics = DataQualityAnalyzer::analyze(&data);

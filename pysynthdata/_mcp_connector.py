@@ -51,9 +51,22 @@ except ImportError:
                 self._ready = False
 
         def _generate_dab_config(self, tools: Dict[str, Any]) -> Dict:
+            # Bind to localhost only and scope CORS/permissions to read-only
+            # tool invocation by default. The previous defaults (0.0.0.0,
+            # wildcard CORS origins, wildcard "*" actions/roles on every
+            # entity) exposed every MCP tool to any network peer with no
+            # access control — a local dev connector, not a public API, so
+            # it should not default to internet-facing/unrestricted.
             return {
-                "runtime": {"host": "0.0.0.0", "port": self.port, "cors": {"origins": ["*"]}},
-                "entities": {k: {"source": k, "permissions": [{"actions": ["*"], "roles": ["*"]}]} for k in tools.keys()},
+                "runtime": {
+                    "host": "127.0.0.1",
+                    "port": self.port,
+                    "cors": {"origins": ["http://127.0.0.1", "http://localhost"]},
+                },
+                "entities": {
+                    k: {"source": k, "permissions": [{"actions": ["read", "execute"], "roles": ["local"]}]}
+                    for k in tools.keys()
+                },
                 "rest": {"enabled": True, "path": "/api"},
                 "graphql": {"enabled": True, "path": "/graphql"},
                 "mcp": {"enabled": True, "path": "/mcp"},

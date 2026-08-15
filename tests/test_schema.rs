@@ -1,5 +1,4 @@
-use world_compiler::schema::{Schema, Entity, Field, FieldType, Cardinality, Relationship};
-use indexmap::IndexMap;
+use pysynthdata::schema::{Cardinality, Field, FieldType, Relationship, Schema};
 
 #[test]
 fn test_schema_add_entity() {

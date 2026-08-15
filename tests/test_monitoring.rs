@@ -11,13 +11,15 @@ fn test_monitoring_config_defaults() {
 
 #[test]
 fn test_enable_all_monitoring() {
-    let mut config = MonitoringConfig::default();
-    config.track_schema_drift = true;
-    config.track_data_drift = true;
-    config.track_constraint_violations = true;
-    config.track_edge_cases = true;
-    config.track_performance_metrics = true;
-    config.track_temporal_anomalies = true;
+    let config = MonitoringConfig {
+        track_schema_drift: true,
+        track_data_drift: true,
+        track_constraint_violations: true,
+        track_edge_cases: true,
+        track_performance_metrics: true,
+        track_temporal_anomalies: true,
+        ..Default::default()
+    };
 
     assert!(config.track_schema_drift);
     assert!(config.track_data_drift);
@@ -29,10 +31,15 @@ fn test_enable_all_monitoring() {
 
 #[test]
 fn test_custom_thresholds() {
-    let mut config = MonitoringConfig::default();
-    config.alert_thresholds.schema_drift_threshold = 0.05;
-    config.alert_thresholds.data_drift_threshold = 0.1;
-    config.alert_thresholds.constraint_violation_threshold = 0.02;
+    let config = MonitoringConfig {
+        alert_thresholds: AlertThresholds {
+            schema_drift_threshold: 0.05,
+            data_drift_threshold: 0.1,
+            constraint_violation_threshold: 0.02,
+            ..Default::default()
+        },
+        ..Default::default()
+    };
 
     assert_eq!(config.alert_thresholds.schema_drift_threshold, 0.05);
     assert_eq!(config.alert_thresholds.data_drift_threshold, 0.1);
@@ -68,13 +75,18 @@ fn test_schema_drift_detection() {
         temporal_anomalies: 2,
     };
 
-    let mut config = MonitoringConfig::default();
-    config.track_schema_drift = true;
+    let config = MonitoringConfig {
+        track_schema_drift: true,
+        ..Default::default()
+    };
 
     let alerts = detector.detect_drift(current, &config);
     assert_eq!(alerts.len(), 1);
     assert_eq!(alerts[0].drift_type, DriftType::SchemaDrift);
-    assert!(matches!(alerts[0].severity, AlertSeverity::Warning | AlertSeverity::Critical));
+    assert!(matches!(
+        alerts[0].severity,
+        AlertSeverity::Warning | AlertSeverity::Critical
+    ));
 }
 
 #[test]
@@ -101,8 +113,10 @@ fn test_data_drift_detection() {
         temporal_anomalies: 2,
     };
 
-    let mut config = MonitoringConfig::default();
-    config.track_data_drift = true;
+    let config = MonitoringConfig {
+        track_data_drift: true,
+        ..Default::default()
+    };
 
     let alerts = detector.detect_drift(current, &config);
     assert_eq!(alerts.len(), 1);
@@ -133,8 +147,10 @@ fn test_constraint_violation_alert() {
         temporal_anomalies: 0,
     };
 
-    let mut config = MonitoringConfig::default();
-    config.track_constraint_violations = true;
+    let config = MonitoringConfig {
+        track_constraint_violations: true,
+        ..Default::default()
+    };
 
     let alerts = detector.detect_drift(current, &config);
     assert_eq!(alerts.len(), 1);
@@ -165,8 +181,10 @@ fn test_edge_case_frequency_alert() {
         temporal_anomalies: 0,
     };
 
-    let mut config = MonitoringConfig::default();
-    config.track_edge_cases = true;
+    let config = MonitoringConfig {
+        track_edge_cases: true,
+        ..Default::default()
+    };
 
     let alerts = detector.detect_drift(current, &config);
     assert_eq!(alerts.len(), 1);
@@ -190,18 +208,20 @@ fn test_multiple_drift_alerts() {
 
     let current = DriftMetrics {
         timestamp: 2000,
-        schema_drift_score: 0.15, // Exceeds schema drift threshold
-        data_drift_score: 0.20,   // Exceeds data drift threshold
+        schema_drift_score: 0.15,        // Exceeds schema drift threshold
+        data_drift_score: 0.20,          // Exceeds data drift threshold
         constraint_violations_pct: 0.05, // Exceeds constraint violation threshold
-        edge_case_frequency: 0.10, // Exceeds edge case threshold
+        edge_case_frequency: 0.10,       // Exceeds edge case threshold
         temporal_anomalies: 0,
     };
 
-    let mut config = MonitoringConfig::default();
-    config.track_schema_drift = true;
-    config.track_data_drift = true;
-    config.track_constraint_violations = true;
-    config.track_edge_cases = true;
+    let config = MonitoringConfig {
+        track_schema_drift: true,
+        track_data_drift: true,
+        track_constraint_violations: true,
+        track_edge_cases: true,
+        ..Default::default()
+    };
 
     let alerts = detector.detect_drift(current, &config);
     assert_eq!(alerts.len(), 4);
@@ -231,11 +251,13 @@ fn test_alert_summary() {
         temporal_anomalies: 0,
     };
 
-    let mut config = MonitoringConfig::default();
-    config.track_schema_drift = true;
-    config.track_data_drift = true;
-    config.track_constraint_violations = true;
-    config.track_edge_cases = true;
+    let config = MonitoringConfig {
+        track_schema_drift: true,
+        track_data_drift: true,
+        track_constraint_violations: true,
+        track_edge_cases: true,
+        ..Default::default()
+    };
 
     detector.detect_drift(current, &config);
     let summary = detector.get_alert_summary();
@@ -424,9 +446,30 @@ fn test_anomalies_by_type() {
 fn test_high_confidence_anomalies() {
     let mut detector = AnomalyDetector::new();
 
-    detector.detect_minor_anomaly("e1".to_string(), "f1".to_string(), "e".to_string(), "a".to_string(), 0.6, 1000);
-    detector.detect_minor_anomaly("e2".to_string(), "f2".to_string(), "e".to_string(), "a".to_string(), 0.95, 2000);
-    detector.detect_minor_anomaly("e3".to_string(), "f3".to_string(), "e".to_string(), "a".to_string(), 0.88, 3000);
+    detector.detect_minor_anomaly(
+        "e1".to_string(),
+        "f1".to_string(),
+        "e".to_string(),
+        "a".to_string(),
+        0.6,
+        1000,
+    );
+    detector.detect_minor_anomaly(
+        "e2".to_string(),
+        "f2".to_string(),
+        "e".to_string(),
+        "a".to_string(),
+        0.95,
+        2000,
+    );
+    detector.detect_minor_anomaly(
+        "e3".to_string(),
+        "f3".to_string(),
+        "e".to_string(),
+        "a".to_string(),
+        0.88,
+        3000,
+    );
 
     let high_conf = detector.get_high_confidence_anomalies(0.90);
     assert_eq!(high_conf.len(), 1);
@@ -437,10 +480,37 @@ fn test_high_confidence_anomalies() {
 fn test_anomaly_summary() {
     let mut detector = AnomalyDetector::new();
 
-    detector.detect_minor_anomaly("e1".to_string(), "f1".to_string(), "e".to_string(), "a".to_string(), 0.8, 1000);
-    detector.detect_major_anomaly("e2".to_string(), "f2".to_string(), "e".to_string(), "a".to_string(), 0.9, 2000);
-    detector.detect_format_anomaly("e3".to_string(), "f3".to_string(), "fmt".to_string(), "bad".to_string(), 3000);
-    detector.detect_outlier("e4".to_string(), "f4".to_string(), "range".to_string(), "outlier".to_string(), 0.85, 4000);
+    detector.detect_minor_anomaly(
+        "e1".to_string(),
+        "f1".to_string(),
+        "e".to_string(),
+        "a".to_string(),
+        0.8,
+        1000,
+    );
+    detector.detect_major_anomaly(
+        "e2".to_string(),
+        "f2".to_string(),
+        "e".to_string(),
+        "a".to_string(),
+        0.9,
+        2000,
+    );
+    detector.detect_format_anomaly(
+        "e3".to_string(),
+        "f3".to_string(),
+        "fmt".to_string(),
+        "bad".to_string(),
+        3000,
+    );
+    detector.detect_outlier(
+        "e4".to_string(),
+        "f4".to_string(),
+        "range".to_string(),
+        "outlier".to_string(),
+        0.85,
+        4000,
+    );
 
     let summary = detector.get_anomaly_summary();
 
@@ -450,8 +520,8 @@ fn test_anomaly_summary() {
     assert_eq!(summary.format_anomalies, 1);
     assert_eq!(summary.outliers, 1);
     assert_eq!(summary.critical_count, 1); // Major anomaly
-    assert_eq!(summary.warning_count, 2);  // Format + Outlier
-    assert_eq!(summary.info_count, 1);     // Minor
+    assert_eq!(summary.warning_count, 2); // Format + Outlier
+    assert_eq!(summary.info_count, 1); // Minor
     assert!(summary.avg_confidence > 0.8);
 }
 
@@ -459,7 +529,14 @@ fn test_anomaly_summary() {
 fn test_clear_anomalies() {
     let mut detector = AnomalyDetector::new();
 
-    detector.detect_minor_anomaly("e1".to_string(), "f1".to_string(), "e".to_string(), "a".to_string(), 0.8, 1000);
+    detector.detect_minor_anomaly(
+        "e1".to_string(),
+        "f1".to_string(),
+        "e".to_string(),
+        "a".to_string(),
+        0.8,
+        1000,
+    );
     assert_eq!(detector.get_anomalies().len(), 1);
 
     detector.clear_anomalies();

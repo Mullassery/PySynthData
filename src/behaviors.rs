@@ -1,7 +1,7 @@
-use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
 use rand::Rng;
 use rand::SeedableRng;
+use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct StateMachine {
@@ -165,7 +165,7 @@ impl BehaviorSimulator {
                     self.random.gen::<f64>() < 1.0 / (mean / 100.0)
                 }
                 FrequencyDistribution::Fixed { interval } => {
-                    *current_time % interval == 0
+                    (*current_time).is_multiple_of(*interval)
                 }
                 _ => false,
             };
@@ -235,7 +235,7 @@ impl EdgeCaseGenerator {
     fn generate_customer_edge_case(&self, index: usize, rng: &mut rand::rngs::StdRng) -> EdgeCase {
         use rand::seq::SliceRandom;
 
-        let case_types = vec![
+        let case_types = [
             "dormant_account",
             "rapid_churn",
             "fraud_pattern",
@@ -274,7 +274,7 @@ impl EdgeCaseGenerator {
         EdgeCase {
             id: format!("edge_{}", index),
             entity_type: "Transaction".to_string(),
-            case_type: if index % 2 == 0 {
+            case_type: if index.is_multiple_of(2) {
                 "high_value".to_string()
             } else {
                 "rapid_sequence".to_string()
@@ -289,7 +289,7 @@ impl EdgeCaseGenerator {
         EdgeCase {
             id: format!("edge_{}", index),
             entity_type: "Robot".to_string(),
-            case_type: if index % 3 == 0 {
+            case_type: if index.is_multiple_of(3) {
                 "localization_failure".to_string()
             } else if index % 3 == 1 {
                 "battery_critical".to_string()
@@ -357,10 +357,7 @@ impl ScenarioSimulator {
         base_id: &str,
         interventions: HashMap<String, String>,
     ) -> ScenarioBranch {
-        let mut branch = ScenarioBranch::new(
-            format!("{}_branch", base_id),
-            base_id.to_string(),
-        );
+        let mut branch = ScenarioBranch::new(format!("{}_branch", base_id), base_id.to_string());
 
         for (key, value) in interventions {
             branch.add_intervention(key, value);
@@ -369,10 +366,7 @@ impl ScenarioSimulator {
         branch
     }
 
-    pub fn simulate_intervention(
-        intervention: &str,
-        _parameter: &str,
-    ) -> (f64, f64) {
+    pub fn simulate_intervention(intervention: &str, _parameter: &str) -> (f64, f64) {
         match intervention {
             "recession" => (0.9, 1.3),
             "inflation" => (0.95, 1.15),

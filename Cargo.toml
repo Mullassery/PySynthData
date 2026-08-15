@@ -1,13 +1,13 @@
 [package]
 name = "pysynthdata"
-version = "0.2.1"
+version = "0.3.0"
 edition = "2021"
-description = "Generate complete synthetic worlds from schemas, data, or natural language. Production-ready with compliance, governance, and enterprise features."
+description = "Generate synthetic relational datasets from a schema: real row generation, foreign keys, constraints, and quality scoring."
 repository = "https://github.com/Mullassery/PySynthData"
 license = "Proprietary"
 publish = true
 authors = ["Georgi Mullassery <mullassery@gmail.com>"]
-keywords = ["synthetic-data", "simulation", "robotics", "compliance", "enterprise"]
+keywords = ["synthetic-data", "data-generation", "testing", "privacy"]
 
 [dependencies]
 pyo3 = { version = "0.22", features = ["abi3-py310"] }
@@ -23,6 +23,7 @@ thiserror = "1.0"
 anyhow = "1.0"
 hashbrown = "0.14"
 indexmap = { version = "2.0", features = ["serde"] }
+regex = "1"
 
 [dev-dependencies]
 tempfile = "3"
