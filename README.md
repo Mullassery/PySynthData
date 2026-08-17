@@ -78,7 +78,12 @@ The MCP tool handlers in `pysynthdata/_mcp_tools.py` follow the same rule: `gene
 
 ## Roadmap
 
-Implemented behind the Rust `pysynthdata` crate but not yet wired to the Python API: robotics fleet simulation (`robotics.rs`, `ros2_bridge.rs`), behavioral state machines and scenario branching (`behaviors.rs`), a domain knowledge base for schema inference (`research.rs`), drift/anomaly monitoring (`monitoring.rs`), and "real world mess" / unconventional-data injectors (`real_world_mess.rs`, `unconventional_data.rs`). These have Rust-level test coverage but no Python bindings yet; binding them is future work, not a promised feature of the current release.
+Implemented behind the Rust `pysynthdata` crate but not yet wired to the Python API: robotics fleet simulation (`robotics.rs`, `ros2_bridge.rs`), behavioral state machines and scenario branching (`behaviors.rs`), a domain knowledge base for schema inference (`research.rs`), drift/anomaly monitoring (`monitoring.rs`), "real world mess" / unconventional-data injectors (`real_world_mess.rs`, `unconventional_data.rs`), and multi-modal (vision/audio/sensor/text/temporal) data augmentation (`multimodal_augmentation.rs`). These have Rust-level test coverage but no Python bindings yet; binding them is future work, not a promised feature of the current release.
+
+## Known issues
+
+- `multimodal_augmentation.rs` (vision, audio, sensor, and temporal augmentors) was merged with Rust-level coverage but, like the other modules above, has no Python bindings yet — it is not usable from `import pysynthdata`.
+- No open GitHub issues at the time of this writing.
 
 ## Development
 
