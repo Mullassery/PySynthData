@@ -82,7 +82,7 @@ fn test_task_allocation() {
     };
 
     let coordinator = FleetCoordinator::new(AllocationStrategy::Greedy);
-    let allocation = coordinator.allocate_tasks(&sim, &[task]);
+    let allocation = coordinator.allocate_tasks(&mut sim, &[task]);
 
     assert!(!allocation.is_empty());
 }

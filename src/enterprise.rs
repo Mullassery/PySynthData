@@ -1,6 +1,6 @@
+use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
-use chrono::{DateTime, Utc};
 use uuid::Uuid;
 
 // ============================================================================
@@ -18,7 +18,7 @@ pub struct DataLineage {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum LineageSource {
-    OriginalData(String),           // From production database
+    OriginalData(String), // From production database
     SyntheticGeneration(GenerationMethod),
     Transformation(String),
     Migration(MigrationDetails),
@@ -100,7 +100,7 @@ pub enum ComplianceFramework {
     HIPAA,
     CCPA,
     SOC2,
-    PCI_DSS,
+    PciDss,
     NIST,
     Custom(String),
 }
@@ -222,6 +222,12 @@ pub struct DataGovernanceManager {
     audit_trail: Vec<AuditEvent>,
 }
 
+impl Default for DataGovernanceManager {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl DataGovernanceManager {
     pub fn new() -> Self {
         DataGovernanceManager {
@@ -276,6 +282,12 @@ pub struct CostAndPerformanceTracker {
     profiles: Vec<PerformanceProfile>,
 }
 
+impl Default for CostAndPerformanceTracker {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl CostAndPerformanceTracker {
     pub fn new() -> Self {
         CostAndPerformanceTracker {
@@ -300,7 +312,11 @@ impl CostAndPerformanceTracker {
         if self.profiles.is_empty() {
             return 0.0;
         }
-        let sum: f64 = self.profiles.iter().map(|p| p.throughput_records_per_sec).sum();
+        let sum: f64 = self
+            .profiles
+            .iter()
+            .map(|p| p.throughput_records_per_sec)
+            .sum();
         sum / self.profiles.len() as f64
     }
 
@@ -337,6 +353,12 @@ pub struct GenerationConfig {
 
 pub struct ProvenanceTracker {
     provenance_records: HashMap<String, DataProvenance>,
+}
+
+impl Default for ProvenanceTracker {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 impl ProvenanceTracker {
@@ -394,10 +416,7 @@ pub struct RegulatoryFinding {
 pub struct RegulatoryReportGenerator;
 
 impl RegulatoryReportGenerator {
-    pub fn generate_gdpr_report(
-        dataset_id: &str,
-        audit_trail: &[AuditEvent],
-    ) -> RegulatoryReport {
+    pub fn generate_gdpr_report(dataset_id: &str, audit_trail: &[AuditEvent]) -> RegulatoryReport {
         RegulatoryReport {
             report_id: Uuid::new_v4().to_string(),
             framework: ComplianceFramework::GDPR,
@@ -409,10 +428,7 @@ impl RegulatoryReportGenerator {
         }
     }
 
-    pub fn generate_hipaa_report(
-        dataset_id: &str,
-        audit_trail: &[AuditEvent],
-    ) -> RegulatoryReport {
+    pub fn generate_hipaa_report(dataset_id: &str, audit_trail: &[AuditEvent]) -> RegulatoryReport {
         RegulatoryReport {
             report_id: Uuid::new_v4().to_string(),
             framework: ComplianceFramework::HIPAA,
@@ -424,10 +440,7 @@ impl RegulatoryReportGenerator {
         }
     }
 
-    pub fn generate_soc2_report(
-        dataset_id: &str,
-        audit_trail: &[AuditEvent],
-    ) -> RegulatoryReport {
+    pub fn generate_soc2_report(dataset_id: &str, audit_trail: &[AuditEvent]) -> RegulatoryReport {
         RegulatoryReport {
             report_id: Uuid::new_v4().to_string(),
             framework: ComplianceFramework::SOC2,

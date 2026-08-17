@@ -4,8 +4,8 @@ build-backend = "maturin"
 
 [project]
 name = "pysynthdata"
-version = "0.2.2"
-description = "Generate complete synthetic worlds from schemas, data, or natural language. Production-ready with compliance, governance, and enterprise features."
+version = "0.3.0"
+description = "Generate synthetic relational datasets from a schema: real row generation, foreign keys, constraints, and quality scoring."
 readme = "README.md"
 license = {text = "Proprietary"}
 authors = [{name = "Georgi Mullassery", email = "mullassery@gmail.com"}]
@@ -20,10 +20,8 @@ classifiers = [
     "Topic :: Scientific/Engineering :: Artificial Intelligence",
 ]
 dependencies = [
-    "pydantic>=2.0",
     "pandas>=1.5",
     "pyarrow>=10.0",
-    "pyyaml>=6.0",
 ]
 
 [project.optional-dependencies]

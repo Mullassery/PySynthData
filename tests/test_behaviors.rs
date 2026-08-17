@@ -81,7 +81,7 @@ fn test_state_machine_simulation() {
     assert!(series.is_some());
 
     let s = series.unwrap();
-    assert!(s.state_history.len() > 0);
+    assert!(!s.state_history.is_empty());
 }
 
 #[test]
@@ -104,7 +104,7 @@ fn test_edge_case_generation_robot() {
     assert_eq!(cases.len(), 5);
     for case in cases {
         assert_eq!(case.entity_type, "Robot");
-        let valid_types = vec![
+        let valid_types = [
             "localization_failure",
             "battery_critical",
             "collision_imminent",
@@ -127,7 +127,8 @@ fn test_scenario_creation() {
 
 #[test]
 fn test_intervention_simulation() {
-    let (shrink_factor, growth_factor) = ScenarioSimulator::simulate_intervention("recession", "gdp");
+    let (shrink_factor, growth_factor) =
+        ScenarioSimulator::simulate_intervention("recession", "gdp");
 
     assert!(shrink_factor < 1.0);
     assert!(growth_factor > 1.0);

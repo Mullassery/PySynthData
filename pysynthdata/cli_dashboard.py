@@ -66,11 +66,13 @@ class PySynthDataDashboard:
         )
 
     def run_dashboard(self, interactive: bool = True) -> None:
+        # NOTE: `interactive` currently has no distinct behavior — both
+        # `SimpleDashboard` and `RichDashboard` only implement `render()`,
+        # there is no separate live/interactive mode to call into. Calling
+        # a nonexistent `.run()` here used to crash unconditionally; render
+        # once instead of pretending an interactive mode exists.
         metrics = self.get_mock_metrics()
-        if interactive:
-            self.dashboard.run()
-        else:
-            self.dashboard.render(metrics)
+        self.dashboard.render(metrics)
 
     def export_json(self, output_file: str) -> None:
         metrics = self.get_mock_metrics()

@@ -2,11 +2,7 @@ use pysynthdata::ros2_bridge::*;
 
 #[test]
 fn test_ros2_publisher_init() {
-    let pub1 = ROS2Publisher::new(
-        "/robot/camera".to_string(),
-        ROS2MessageType::Image,
-        10,
-    );
+    let pub1 = ROS2Publisher::new("/robot/camera".to_string(), ROS2MessageType::Image, 10);
 
     assert_eq!(pub1.topic, "/robot/camera");
     assert_eq!(pub1.msg_type, ROS2MessageType::Image);
@@ -15,11 +11,7 @@ fn test_ros2_publisher_init() {
 
 #[test]
 fn test_publish_and_retrieve() {
-    let mut pub1 = ROS2Publisher::new(
-        "/robot/camera".to_string(),
-        ROS2MessageType::Image,
-        10,
-    );
+    let mut pub1 = ROS2Publisher::new("/robot/camera".to_string(), ROS2MessageType::Image, 10);
 
     pub1.publish(vec![1, 2, 3, 4, 5], 1000);
     pub1.publish(vec![6, 7, 8, 9, 10], 2000);
@@ -30,11 +22,7 @@ fn test_publish_and_retrieve() {
 
 #[test]
 fn test_queue_size_limit() {
-    let mut pub1 = ROS2Publisher::new(
-        "/robot/camera".to_string(),
-        ROS2MessageType::Image,
-        3,
-    );
+    let mut pub1 = ROS2Publisher::new("/robot/camera".to_string(), ROS2MessageType::Image, 3);
 
     for i in 0..5 {
         pub1.publish(vec![i], 1000 + i as u64);
@@ -47,11 +35,7 @@ fn test_queue_size_limit() {
 fn test_ros2_bridge_publisher_management() {
     let mut bridge = ROS2SimulatorBridge::new();
 
-    bridge.create_publisher(
-        "/robot/camera".to_string(),
-        ROS2MessageType::Image,
-        10,
-    );
+    bridge.create_publisher("/robot/camera".to_string(), ROS2MessageType::Image, 10);
     bridge.create_publisher("/robot/lidar".to_string(), ROS2MessageType::LaserScan, 10);
 
     let topics = bridge.list_topics();
@@ -62,11 +46,7 @@ fn test_ros2_bridge_publisher_management() {
 #[test]
 fn test_publish_via_bridge() {
     let mut bridge = ROS2SimulatorBridge::new();
-    bridge.create_publisher(
-        "/robot/camera".to_string(),
-        ROS2MessageType::Image,
-        10,
-    );
+    bridge.create_publisher("/robot/camera".to_string(), ROS2MessageType::Image, 10);
 
     let success = bridge.publish_message("/robot/camera", vec![1, 2, 3], 1000);
     assert!(success);
@@ -110,6 +90,6 @@ fn test_nav_stack_integration() {
 
     assert!(path.len() > 1);
 
-    let (linear, angular) = nav.compute_velocity(0.0, 0.0, 5.0, 5.0);
+    let (linear, _angular) = nav.compute_velocity(0.0, 0.0, 5.0, 5.0);
     assert!(linear > 0.0);
 }

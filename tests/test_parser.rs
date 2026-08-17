@@ -1,5 +1,5 @@
-use world_compiler::parser::SchemaParser;
-use world_compiler::schema::FieldType;
+use pysynthdata::parser::SchemaParser;
+use pysynthdata::schema::FieldType;
 
 #[test]
 fn test_parse_simple_schema() {

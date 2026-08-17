@@ -1,18 +1,25 @@
 use crate::schema::*;
+use indexmap::IndexMap;
 use serde::{Deserialize, Serialize};
 use std::fs;
 use std::path::Path;
 
+// `IndexMap` (not `HashMap`) so entity/field declaration order from the YAML
+// source is preserved deterministically. `HashMap`'s iteration order is
+// randomized per-instance, which previously meant parsing the *same* YAML
+// twice could produce a different field generation order in `WorldGenerator`
+// and therefore different rows even with an identical seed — silently
+// breaking the seed-determinism the generator promises.
 #[derive(Debug, Serialize, Deserialize)]
 struct YamlSchema {
-    entities: Option<std::collections::HashMap<String, YamlEntity>>,
+    entities: Option<IndexMap<String, YamlEntity>>,
     relationships: Option<Vec<YamlRelationship>>,
     constraints: Option<Vec<YamlConstraint>>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
 struct YamlEntity {
-    fields: std::collections::HashMap<String, YamlField>,
+    fields: IndexMap<String, YamlField>,
     #[serde(rename = "primary_key")]
     primary_key: Option<String>,
 }
@@ -115,7 +122,13 @@ impl SchemaParser {
                     "length" => ConstraintType::Length,
                     "pattern" => ConstraintType::Pattern,
                     "custom" => ConstraintType::Custom,
-                    _ => return Err(format!("Unknown constraint type: {}", constraint.constraint_type).into()),
+                    _ => {
+                        return Err(format!(
+                            "Unknown constraint type: {}",
+                            constraint.constraint_type
+                        )
+                        .into())
+                    }
                 };
 
                 schema.add_constraint(Constraint {
@@ -127,9 +140,9 @@ impl SchemaParser {
             }
         }
 
-        schema.validate().map_err(|errors| {
-            Box::<dyn std::error::Error>::from(errors.join("; "))
-        })?;
+        schema
+            .validate()
+            .map_err(|errors| Box::<dyn std::error::Error>::from(errors.join("; ")))?;
         Ok(schema)
     }
 
@@ -162,10 +175,22 @@ mod tests {
 
     #[test]
     fn test_parse_field_type_primitives() {
-        assert_eq!(SchemaParser::parse_field_type("string").unwrap(), FieldType::String);
-        assert_eq!(SchemaParser::parse_field_type("int").unwrap(), FieldType::Int);
-        assert_eq!(SchemaParser::parse_field_type("float").unwrap(), FieldType::Float);
-        assert_eq!(SchemaParser::parse_field_type("boolean").unwrap(), FieldType::Boolean);
+        assert_eq!(
+            SchemaParser::parse_field_type("string").unwrap(),
+            FieldType::String
+        );
+        assert_eq!(
+            SchemaParser::parse_field_type("int").unwrap(),
+            FieldType::Int
+        );
+        assert_eq!(
+            SchemaParser::parse_field_type("float").unwrap(),
+            FieldType::Float
+        );
+        assert_eq!(
+            SchemaParser::parse_field_type("boolean").unwrap(),
+            FieldType::Boolean
+        );
     }
 
     #[test]
@@ -183,6 +208,14 @@ entities:
         type: string
         unique: true
     primary_key: id
+  Account:
+    fields:
+      id:
+        type: uuid
+        unique: true
+      customer_id:
+        type: uuid
+    primary_key: id
 relationships:
   - from_entity: Customer
     to_entity: Account
@@ -192,8 +225,9 @@ relationships:
 "#;
 
         let schema = SchemaParser::from_yaml_string(yaml).unwrap();
-        assert_eq!(schema.entities.len(), 1);
+        assert_eq!(schema.entities.len(), 2);
         assert!(schema.entities.contains_key("Customer"));
+        assert!(schema.entities.contains_key("Account"));
         assert_eq!(schema.relationships.len(), 1);
     }
 }

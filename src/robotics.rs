@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
-use uuid::Uuid;
 use std::collections::HashMap;
+use uuid::Uuid;
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub enum RobotType {
@@ -442,7 +442,7 @@ mod tests {
             completed_at: None,
         };
 
-        let allocation = coordinator.allocate_tasks(&sim, &[task]);
+        let allocation = coordinator.allocate_tasks(&mut sim, &[task]);
         assert!(!allocation.is_empty());
     }
 }

@@ -1,7 +1,6 @@
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct MonitoringConfig {
     pub track_schema_drift: bool,
     pub track_data_drift: bool,
@@ -21,27 +20,13 @@ pub struct AlertThresholds {
     pub performance_latency_threshold_ms: u64,
 }
 
-impl Default for MonitoringConfig {
-    fn default() -> Self {
-        MonitoringConfig {
-            track_schema_drift: false,
-            track_data_drift: false,
-            track_constraint_violations: false,
-            track_edge_cases: false,
-            track_performance_metrics: false,
-            track_temporal_anomalies: false,
-            alert_thresholds: AlertThresholds::default(),
-        }
-    }
-}
-
 impl Default for AlertThresholds {
     fn default() -> Self {
         AlertThresholds {
-            schema_drift_threshold: 0.1,     // 10% deviation
-            data_drift_threshold: 0.15,       // 15% deviation
-            constraint_violation_threshold: 0.01, // 1% violations
-            edge_case_frequency_threshold: 0.05,  // 5% edge cases
+            schema_drift_threshold: 0.1,            // 10% deviation
+            data_drift_threshold: 0.15,             // 15% deviation
+            constraint_violation_threshold: 0.01,   // 1% violations
+            edge_case_frequency_threshold: 0.05,    // 5% edge cases
             performance_latency_threshold_ms: 5000, // 5 seconds
         }
     }
@@ -57,7 +42,7 @@ pub struct DriftMetrics {
     pub temporal_anomalies: usize,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub enum DriftType {
     SchemaDrift,
     DataDrift,
@@ -106,6 +91,12 @@ pub struct AnomalyDetection {
 
 pub struct AnomalyDetector {
     anomalies: Vec<AnomalyDetection>,
+}
+
+impl Default for AnomalyDetector {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 impl AnomalyDetector {
@@ -295,6 +286,12 @@ pub struct DriftDetector {
     alert_history: Vec<DriftAlert>,
 }
 
+impl Default for DriftDetector {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl DriftDetector {
     pub fn new() -> Self {
         DriftDetector {
@@ -317,7 +314,7 @@ impl DriftDetector {
         if let Some(baseline) = &self.baseline_metrics {
             if config.track_schema_drift {
                 if let Some(alert) = self.check_schema_drift(
-                    &baseline,
+                    baseline,
                     &current_metrics,
                     config.alert_thresholds.schema_drift_threshold,
                 ) {
@@ -327,7 +324,7 @@ impl DriftDetector {
 
             if config.track_data_drift {
                 if let Some(alert) = self.check_data_drift(
-                    &baseline,
+                    baseline,
                     &current_metrics,
                     config.alert_thresholds.data_drift_threshold,
                 ) {
@@ -550,9 +547,17 @@ pub struct PerformanceMetric {
     pub records_processed: usize,
 }
 
+impl Default for PerformanceMonitor {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl PerformanceMonitor {
     pub fn new() -> Self {
-        PerformanceMonitor { metrics: Vec::new() }
+        PerformanceMonitor {
+            metrics: Vec::new(),
+        }
     }
 
     pub fn record_operation(
@@ -629,9 +634,11 @@ mod tests {
 
     #[test]
     fn test_enable_monitoring() {
-        let mut config = MonitoringConfig::default();
-        config.track_schema_drift = true;
-        config.track_data_drift = true;
+        let config = MonitoringConfig {
+            track_schema_drift: true,
+            track_data_drift: true,
+            ..Default::default()
+        };
 
         assert!(config.track_schema_drift);
         assert!(config.track_data_drift);
@@ -661,8 +668,10 @@ mod tests {
             temporal_anomalies: 0,
         };
 
-        let mut config = MonitoringConfig::default();
-        config.track_schema_drift = true;
+        let config = MonitoringConfig {
+            track_schema_drift: true,
+            ..Default::default()
+        };
 
         let alerts = detector.detect_drift(current, &config);
         assert_eq!(alerts.len(), 1);
@@ -693,8 +702,10 @@ mod tests {
             temporal_anomalies: 0,
         };
 
-        let mut config = MonitoringConfig::default();
-        config.track_schema_drift = true;
+        let config = MonitoringConfig {
+            track_schema_drift: true,
+            ..Default::default()
+        };
 
         detector.detect_drift(current, &config);
         let summary = detector.get_alert_summary();

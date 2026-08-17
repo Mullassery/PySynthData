@@ -1,64 +1,64 @@
+use rand::Rng;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
-use rand::Rng;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct RealWorldMessConfig {
     // Legacy system cruft
     pub legacy_system_mixed_ids: bool,
-    pub inconsistent_null_representations: bool,      // NULL, null, N/A, "", -1, 0, "unknown"
+    pub inconsistent_null_representations: bool, // NULL, null, N/A, "", -1, 0, "unknown"
     pub duplicate_column_names_with_typos: bool,
 
     // Human data entry errors
-    pub fat_finger_errors: bool,                       // 1 → l, 0 → O
-    pub copy_paste_truncation: bool,                   // Text gets cut off randomly
-    pub field_swaps: bool,                             // Values in wrong columns
-    pub unit_confusion: bool,                          // kg vs lbs, C vs F
+    pub fat_finger_errors: bool,     // 1 → l, 0 → O
+    pub copy_paste_truncation: bool, // Text gets cut off randomly
+    pub field_swaps: bool,           // Values in wrong columns
+    pub unit_confusion: bool,        // kg vs lbs, C vs F
 
     // System integration failures
-    pub encoding_mismatches: bool,                     // UTF-8, Latin-1, ASCII mixed
-    pub character_corruption: bool,                    // Special chars become garbage
-    pub decimal_separator_chaos: bool,                 // 100.5 vs 100,5 vs 1005 (missing decimal)
+    pub encoding_mismatches: bool,     // UTF-8, Latin-1, ASCII mixed
+    pub character_corruption: bool,    // Special chars become garbage
+    pub decimal_separator_chaos: bool, // 100.5 vs 100,5 vs 1005 (missing decimal)
 
     // Temporal mess
-    pub timezone_chaos: bool,                          // Mixed UTC, local, no timezone
+    pub timezone_chaos: bool, // Mixed UTC, local, no timezone
     pub leap_second_errors: bool,
-    pub y2k_style_bugs: bool,                          // Year 00, 99, wrapped dates
-    pub daylight_savings_doubles: bool,                // 2:30 AM happens twice
+    pub y2k_style_bugs: bool,           // Year 00, 99, wrapped dates
+    pub daylight_savings_doubles: bool, // 2:30 AM happens twice
 
     // Batch processing disasters
-    pub partial_load_incompleteness: bool,             // Some fields missing in later batches
-    pub schema_evolution_incompleteness: bool,         // Old/new schema versions mixed
-    pub rollback_artifacts: bool,                      // Partially reverted transactions
+    pub partial_load_incompleteness: bool, // Some fields missing in later batches
+    pub schema_evolution_incompleteness: bool, // Old/new schema versions mixed
+    pub rollback_artifacts: bool,          // Partially reverted transactions
     pub retried_duplicates_with_timestamp_shift: bool,
 
     // Sensor/integration drift
-    pub sensor_calibration_drift: bool,                // Values gradually shift
-    pub api_rate_limit_truncation: bool,               // Data cut off mid-request
-    pub timeout_partial_writes: bool,                  // Some fields written, others not
-    pub cache_stale_writes: bool,                      // Old data written over new
+    pub sensor_calibration_drift: bool,  // Values gradually shift
+    pub api_rate_limit_truncation: bool, // Data cut off mid-request
+    pub timeout_partial_writes: bool,    // Some fields written, others not
+    pub cache_stale_writes: bool,        // Old data written over new
 
     // Migration artifacts
-    pub null_from_migration: bool,                     // NULLs where data should exist
+    pub null_from_migration: bool, // NULLs where data should exist
     pub duplicate_after_replication: bool,
-    pub referential_integrity_broken: bool,            // Foreign keys don't exist
+    pub referential_integrity_broken: bool, // Foreign keys don't exist
 
     // Operator errors
-    pub accidental_regex_replacements: bool,           // Overly broad find/replace
-    pub manual_correction_inconsistencies: bool,       // Corrections made inconsistently
-    pub batch_delete_mistakes: bool,                   // Data deleted that shouldn't be
+    pub accidental_regex_replacements: bool, // Overly broad find/replace
+    pub manual_correction_inconsistencies: bool, // Corrections made inconsistently
+    pub batch_delete_mistakes: bool,         // Data deleted that shouldn't be
     pub manual_sql_update_typos: bool,
 
     // Business logic errors in code
-    pub rounding_accumulation_errors: bool,            // Rounding errors compound
+    pub rounding_accumulation_errors: bool, // Rounding errors compound
     pub floating_point_precision_loss: bool,
-    pub type_conversion_edge_cases: bool,              // "123abc" as int = 123 or error?
-    pub default_value_spill: bool,                     // 0 or "N/A" as actual data vs default
+    pub type_conversion_edge_cases: bool, // "123abc" as int = 123 or error?
+    pub default_value_spill: bool,        // 0 or "N/A" as actual data vs default
 
     // Compression of multiple issues
-    pub simultaneous_multi_layer_mess: bool,           // Multiple issues at once
-    pub cascading_error_propagation: bool,             // One error causes many
-    pub error_correction_creates_new_errors: bool,     // Fix attempt makes it worse
+    pub simultaneous_multi_layer_mess: bool, // Multiple issues at once
+    pub cascading_error_propagation: bool,   // One error causes many
+    pub error_correction_creates_new_errors: bool, // Fix attempt makes it worse
 }
 
 impl Default for RealWorldMessConfig {
@@ -118,7 +118,7 @@ impl RealWorldMessGenerator {
 
     pub fn apply_real_world_mess(
         &mut self,
-        data: &mut Vec<HashMap<String, String>>,
+        data: &mut [HashMap<String, String>],
         config: &RealWorldMessConfig,
     ) {
         // Legacy System Cruft
@@ -211,18 +211,20 @@ impl RealWorldMessGenerator {
     fn inject_legacy_id_formats(&mut self, data: &mut [HashMap<String, String>]) {
         for (i, row) in data.iter_mut().enumerate() {
             let id = match i % 5 {
-                0 => format!("ID_{:08}", i),           // Legacy format
-                1 => format!("{}", i),                  // New format
-                2 => format!("id-{:04x}", i),          // Hex format
-                3 => format!("OLD_{}_{}", i, i * 2),  // Duplicated in old system
-                _ => format!("{:016}", i),             // Different field length
+                0 => format!("ID_{:08}", i),         // Legacy format
+                1 => format!("{}", i),               // New format
+                2 => format!("id-{:04x}", i),        // Hex format
+                3 => format!("OLD_{}_{}", i, i * 2), // Duplicated in old system
+                _ => format!("{:016}", i),           // Different field length
             };
             row.insert("id".to_string(), id);
         }
     }
 
     fn inject_null_chaos(&mut self, data: &mut [HashMap<String, String>]) {
-        let null_representations = vec!["NULL", "null", "N/A", "", "-1", "0", "unknown", "???", "VOID"];
+        let null_representations = vec![
+            "NULL", "null", "N/A", "", "-1", "0", "unknown", "???", "VOID",
+        ];
 
         for row in data.iter_mut() {
             if self.rng.gen_bool(0.1) {
@@ -232,14 +234,15 @@ impl RealWorldMessGenerator {
                     continue;
                 };
 
-                let null_rep = null_representations[self.rng.gen_range(0..null_representations.len())];
+                let null_rep =
+                    null_representations[self.rng.gen_range(0..null_representations.len())];
                 row.insert(field, null_rep.to_string());
             }
         }
     }
 
     fn inject_fat_finger_errors(&mut self, data: &mut [HashMap<String, String>]) {
-        let confusions = vec![('1', 'l'), ('0', 'O'), ('5', 'S'), ('8', 'B')];
+        let confusions = [('1', 'l'), ('0', 'O'), ('5', 'S'), ('8', 'B')];
 
         for row in data.iter_mut() {
             if self.rng.gen_bool(0.05) {
@@ -286,7 +289,7 @@ impl RealWorldMessGenerator {
     }
 
     fn inject_unit_confusion(&mut self, data: &mut [HashMap<String, String>]) {
-        let unit_pairs = vec![
+        let unit_pairs = [
             ("kg", "lbs"),
             ("C", "F"),
             ("m", "ft"),
@@ -314,7 +317,8 @@ impl RealWorldMessGenerator {
                     let bytes: Vec<u8> = value.bytes().collect();
                     if !bytes.is_empty() {
                         let corrupt_idx = self.rng.gen_range(0..bytes.len());
-                        let corrupted = format!("{}[CORRUPTED]", &value[..corrupt_idx.min(value.len())]);
+                        let corrupted =
+                            format!("{}[CORRUPTED]", &value[..corrupt_idx.min(value.len())]);
                         *value = corrupted;
                     }
                 }
@@ -329,7 +333,7 @@ impl RealWorldMessGenerator {
                     if let Ok(num) = value.parse::<f64>() {
                         let new_val = match self.rng.gen_range(0..3) {
                             0 => format!("{:.2}", num).replace('.', ","), // European format
-                            1 => format!("{}", (num as i64)),            // Lost decimal
+                            1 => format!("{}", (num as i64)),             // Lost decimal
                             _ => format!("{:.5}", num),                   // Too many decimals
                         };
                         *value = new_val;
@@ -340,7 +344,7 @@ impl RealWorldMessGenerator {
     }
 
     fn inject_timezone_confusion(&mut self, data: &mut [HashMap<String, String>]) {
-        let timezones = vec!["UTC", "EST", "PST", "UTC+0", "UTC+8", "GMT", ""];
+        let timezones = ["UTC", "EST", "PST", "UTC+0", "UTC+8", "GMT", ""];
 
         for row in data.iter_mut() {
             if self.rng.gen_bool(0.05) {
@@ -422,7 +426,10 @@ impl RealWorldMessGenerator {
         // Foreign keys that don't exist
         for row in data.iter_mut() {
             if self.rng.gen_bool(0.02) {
-                row.insert("customer_id".to_string(), format!("FK_{}", self.rng.gen_range(0..1000000)));
+                row.insert(
+                    "customer_id".to_string(),
+                    format!("FK_{}", self.rng.gen_range(0..1000000)),
+                );
             }
         }
     }
@@ -456,7 +463,10 @@ impl RealWorldMessGenerator {
         for row in data.iter_mut() {
             if self.rng.gen_bool(0.02) {
                 if let Some((_, value)) = row.iter_mut().next() {
-                    *value = format!("{}[TYPE_MISMATCH]", value.chars().take(3).collect::<String>());
+                    *value = format!(
+                        "{}[TYPE_MISMATCH]",
+                        value.chars().take(3).collect::<String>()
+                    );
                 }
             }
         }
@@ -520,26 +530,50 @@ mod tests {
 
         let id_formats: Vec<String> = data.iter().filter_map(|r| r.get("id").cloned()).collect();
         assert!(!id_formats.is_empty());
-        assert!(id_formats.iter().any(|id| id.contains("ID_") || id.contains("old")));
+        assert!(id_formats
+            .iter()
+            .any(|id| id.contains("ID_") || id.contains("old")));
     }
 
     #[test]
     fn test_null_chaos() {
+        // `inject_null_chaos` only fires with probability 0.1 per row and picks
+        // from 9 possible markers, only some of which the original assertion
+        // checked for — with a fixed seed and just 10 rows that combination
+        // was a coin flip away from spuriously failing. Use enough rows (and
+        // check the full marker set) that the assertion reflects the real
+        // behavior instead of one seed's luck.
         let mut gen = RealWorldMessGenerator::new(42);
-        let mut data = vec![HashMap::from([("field".to_string(), "value".to_string())]); 10];
+        let mut data = vec![HashMap::from([("field".to_string(), "value".to_string())]); 500];
         gen.inject_null_chaos(&mut data);
 
-        let null_count = data.iter().filter(|r| r.get("field").map_or(false, |v| v == "NULL" || v == "N/A" || v == "" || v == "-1")).count();
+        let null_markers = [
+            "NULL", "null", "N/A", "", "-1", "0", "unknown", "???", "VOID",
+        ];
+        let null_count = data
+            .iter()
+            .filter(|r| {
+                r.get("field")
+                    .is_some_and(|v| null_markers.contains(&v.as_str()))
+            })
+            .count();
         assert!(null_count > 0);
     }
 
     #[test]
     fn test_decimal_chaos() {
+        // `inject_decimal_chaos` only fires with probability 0.03 per row; a
+        // single row (the original test) has a ~97% chance of never
+        // triggering it regardless of seed. Use enough rows that at least
+        // one triggers deterministically for this seed.
         let mut gen = RealWorldMessGenerator::new(42);
-        let mut data = vec![HashMap::from([("price".to_string(), "123.45".to_string())])];
+        let mut data = vec![HashMap::from([("price".to_string(), "123.45".to_string())]); 500];
         gen.inject_decimal_chaos(&mut data);
 
-        let price = data[0].get("price").unwrap();
-        assert!(price != "123.45"); // Should be changed
+        let changed_count = data
+            .iter()
+            .filter(|r| r.get("price").map(|v| v.as_str()) != Some("123.45"))
+            .count();
+        assert!(changed_count > 0);
     }
 }
