@@ -1,7 +1,6 @@
 /// Multi-Modal Data Augmentation for Phase 2
 ///
 /// Generate synthetic data across multiple modalities: vision, audio, sensor, text, temporal
-
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
@@ -56,11 +55,21 @@ impl VisionAugmentor {
             sample.augmentations_applied.push(aug_type.to_string());
 
             match *aug_type {
-                "rotation" => sample.metadata.insert("rotation_degrees".to_string(), "45".to_string()),
-                "brightness" => sample.metadata.insert("brightness_factor".to_string(), "1.5".to_string()),
-                "blur" => sample.metadata.insert("blur_sigma".to_string(), "2.0".to_string()),
-                "crop" => sample.metadata.insert("crop_ratio".to_string(), "0.8".to_string()),
-                "noise" => sample.metadata.insert("noise_level".to_string(), "0.1".to_string()),
+                "rotation" => sample
+                    .metadata
+                    .insert("rotation_degrees".to_string(), "45".to_string()),
+                "brightness" => sample
+                    .metadata
+                    .insert("brightness_factor".to_string(), "1.5".to_string()),
+                "blur" => sample
+                    .metadata
+                    .insert("blur_sigma".to_string(), "2.0".to_string()),
+                "crop" => sample
+                    .metadata
+                    .insert("crop_ratio".to_string(), "0.8".to_string()),
+                "noise" => sample
+                    .metadata
+                    .insert("noise_level".to_string(), "0.1".to_string()),
                 _ => None,
             };
 
@@ -72,7 +81,16 @@ impl VisionAugmentor {
 
     /// Get common vision augmentation types
     pub fn available_augmentations() -> Vec<&'static str> {
-        vec!["rotation", "brightness", "blur", "crop", "noise", "flip", "color_jitter", "perspective"]
+        vec![
+            "rotation",
+            "brightness",
+            "blur",
+            "crop",
+            "noise",
+            "flip",
+            "color_jitter",
+            "perspective",
+        ]
     }
 }
 
@@ -88,15 +106,25 @@ impl AudioAugmentor {
             let mut sample = MultiModalSample::new(sample_id, Modality::Audio, "wav".to_string());
 
             sample.sample_rate = Some(16000); // 16 kHz
-            sample.duration_ms = Some(3000);  // 3 seconds
+            sample.duration_ms = Some(3000); // 3 seconds
             sample.augmentations_applied.push(aug_type.to_string());
 
             match *aug_type {
-                "pitch_shift" => sample.metadata.insert("pitch_shift_semitones".to_string(), "3".to_string()),
-                "time_stretch" => sample.metadata.insert("stretch_factor".to_string(), "1.2".to_string()),
-                "noise_injection" => sample.metadata.insert("snr_db".to_string(), "20".to_string()),
-                "eq_low" => sample.metadata.insert("low_freq_boost_db".to_string(), "6".to_string()),
-                "eq_high" => sample.metadata.insert("high_freq_boost_db".to_string(), "6".to_string()),
+                "pitch_shift" => sample
+                    .metadata
+                    .insert("pitch_shift_semitones".to_string(), "3".to_string()),
+                "time_stretch" => sample
+                    .metadata
+                    .insert("stretch_factor".to_string(), "1.2".to_string()),
+                "noise_injection" => sample
+                    .metadata
+                    .insert("snr_db".to_string(), "20".to_string()),
+                "eq_low" => sample
+                    .metadata
+                    .insert("low_freq_boost_db".to_string(), "6".to_string()),
+                "eq_high" => sample
+                    .metadata
+                    .insert("high_freq_boost_db".to_string(), "6".to_string()),
                 _ => None,
             };
 
@@ -107,7 +135,15 @@ impl AudioAugmentor {
     }
 
     pub fn available_augmentations() -> Vec<&'static str> {
-        vec!["pitch_shift", "time_stretch", "noise_injection", "eq_low", "eq_high", "reverb", "compression"]
+        vec![
+            "pitch_shift",
+            "time_stretch",
+            "noise_injection",
+            "eq_low",
+            "eq_high",
+            "reverb",
+            "compression",
+        ]
     }
 }
 
@@ -115,28 +151,41 @@ pub struct SensorAugmentor;
 
 impl SensorAugmentor {
     /// Generate augmented sensor data (LiDAR, IMU, thermal, depth)
-    pub fn generate(base_sensor: &str, sensor_type: &str, augmentation_types: &[&str]) -> Vec<MultiModalSample> {
+    pub fn generate(
+        base_sensor: &str,
+        sensor_type: &str,
+        augmentation_types: &[&str],
+    ) -> Vec<MultiModalSample> {
         let mut samples = Vec::new();
 
         for aug_type in augmentation_types {
             let sample_id = format!("sensor_{}_{}", base_sensor, aug_type);
-            let mut sample = MultiModalSample::new(
-                sample_id,
-                Modality::Sensor,
-                format!("{}_pcd", sensor_type),
-            );
+            let mut sample =
+                MultiModalSample::new(sample_id, Modality::Sensor, format!("{}_pcd", sensor_type));
 
-            sample.sample_rate = Some(30);    // 30 Hz
-            sample.duration_ms = Some(1000);  // 1 second
+            sample.sample_rate = Some(30); // 30 Hz
+            sample.duration_ms = Some(1000); // 1 second
             sample.augmentations_applied.push(aug_type.to_string());
-            sample.metadata.insert("sensor_type".to_string(), sensor_type.to_string());
+            sample
+                .metadata
+                .insert("sensor_type".to_string(), sensor_type.to_string());
 
             match *aug_type {
-                "noise" => sample.metadata.insert("noise_std_dev".to_string(), "0.05".to_string()),
-                "dropout" => sample.metadata.insert("dropout_percent".to_string(), "10".to_string()),
-                "rotation" => sample.metadata.insert("rotation_axis".to_string(), "z".to_string()),
-                "translation" => sample.metadata.insert("translation_magnitude".to_string(), "0.1".to_string()),
-                "scale" => sample.metadata.insert("scale_factor".to_string(), "1.05".to_string()),
+                "noise" => sample
+                    .metadata
+                    .insert("noise_std_dev".to_string(), "0.05".to_string()),
+                "dropout" => sample
+                    .metadata
+                    .insert("dropout_percent".to_string(), "10".to_string()),
+                "rotation" => sample
+                    .metadata
+                    .insert("rotation_axis".to_string(), "z".to_string()),
+                "translation" => sample
+                    .metadata
+                    .insert("translation_magnitude".to_string(), "0.1".to_string()),
+                "scale" => sample
+                    .metadata
+                    .insert("scale_factor".to_string(), "1.05".to_string()),
                 _ => None,
             };
 
@@ -147,7 +196,15 @@ impl SensorAugmentor {
     }
 
     pub fn available_augmentations() -> Vec<&'static str> {
-        vec!["noise", "dropout", "rotation", "translation", "scale", "occlusion", "temporal_jitter"]
+        vec![
+            "noise",
+            "dropout",
+            "rotation",
+            "translation",
+            "scale",
+            "occlusion",
+            "temporal_jitter",
+        ]
     }
 }
 
@@ -160,18 +217,29 @@ impl TemporalAugmentor {
 
         for aug_type in augmentation_types {
             let sample_id = format!("temporal_{}_{}", base_series, aug_type);
-            let mut sample = MultiModalSample::new(sample_id, Modality::Temporal, "csv".to_string());
+            let mut sample =
+                MultiModalSample::new(sample_id, Modality::Temporal, "csv".to_string());
 
             sample.sample_rate = Some(100); // 100 Hz
             sample.duration_ms = Some(10000);
             sample.augmentations_applied.push(aug_type.to_string());
 
             match *aug_type {
-                "time_warp" => sample.metadata.insert("warp_factor".to_string(), "0.9".to_string()),
-                "magnitude_warp" => sample.metadata.insert("magnitude_scale".to_string(), "1.1".to_string()),
-                "jittering" => sample.metadata.insert("jitter_std_dev".to_string(), "0.01".to_string()),
-                "scaling" => sample.metadata.insert("scaling_factor".to_string(), "1.05".to_string()),
-                "rotation" => sample.metadata.insert("rotation_degrees".to_string(), "10".to_string()),
+                "time_warp" => sample
+                    .metadata
+                    .insert("warp_factor".to_string(), "0.9".to_string()),
+                "magnitude_warp" => sample
+                    .metadata
+                    .insert("magnitude_scale".to_string(), "1.1".to_string()),
+                "jittering" => sample
+                    .metadata
+                    .insert("jitter_std_dev".to_string(), "0.01".to_string()),
+                "scaling" => sample
+                    .metadata
+                    .insert("scaling_factor".to_string(), "1.05".to_string()),
+                "rotation" => sample
+                    .metadata
+                    .insert("rotation_degrees".to_string(), "10".to_string()),
                 _ => None,
             };
 
@@ -182,7 +250,15 @@ impl TemporalAugmentor {
     }
 
     pub fn available_augmentations() -> Vec<&'static str> {
-        vec!["time_warp", "magnitude_warp", "jittering", "scaling", "rotation", "permutation", "window_slicing"]
+        vec![
+            "time_warp",
+            "magnitude_warp",
+            "jittering",
+            "scaling",
+            "rotation",
+            "permutation",
+            "window_slicing",
+        ]
     }
 }
 
@@ -191,6 +267,12 @@ pub struct MultiModalAugmentationPipeline {
     audio_enabled: bool,
     sensor_enabled: bool,
     temporal_enabled: bool,
+}
+
+impl Default for MultiModalAugmentationPipeline {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 impl MultiModalAugmentationPipeline {
@@ -226,7 +308,8 @@ impl MultiModalAugmentationPipeline {
         if self.sensor_enabled {
             for i in 0..num_samples {
                 let augmentations = vec!["noise", "rotation", "translation"];
-                let samples = SensorAugmentor::generate(&format!("base_{}", i), "lidar", &augmentations);
+                let samples =
+                    SensorAugmentor::generate(&format!("base_{}", i), "lidar", &augmentations);
                 all_samples.extend(samples);
             }
         }
