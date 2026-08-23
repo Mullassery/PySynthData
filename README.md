@@ -99,9 +99,10 @@ cargo fmt --check
 
 # Python checks
 pip install -e ".[dev]"
-pytest tests_python/ -v
 ruff check python/ pysynthdata/
 ```
+
+There is no Python test suite in this repo yet (`pytest` is listed as a dev dependency but no `test_*.py` files exist) — all current automated test coverage is the Rust `cargo test` suite above, which CI runs on every push.
 
 ## License
 
