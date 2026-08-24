@@ -80,6 +80,10 @@ The MCP tool handlers in `pysynthdata/_mcp_tools.py` follow the same rule: `gene
 
 Implemented behind the Rust `pysynthdata` crate but not yet wired to the Python API: robotics fleet simulation (`robotics.rs`, `ros2_bridge.rs`), behavioral state machines and scenario branching (`behaviors.rs`), a domain knowledge base for schema inference (`research.rs`), drift/anomaly monitoring (`monitoring.rs`), "real world mess" / unconventional-data injectors (`real_world_mess.rs`, `unconventional_data.rs`), and multi-modal (vision/audio/sensor/text/temporal) data augmentation (`multimodal_augmentation.rs`). These have Rust-level test coverage but no Python bindings yet; binding them is future work, not a promised feature of the current release.
 
+Also not yet real:
+- Differential privacy budget (epsilon-delta tracking). `check_privacy_compliance()` (`_mcp_tools.py`) accepts an `epsilon` param and discards it, returning `not_implemented` — no noise-injection or privacy-budget accounting exists anywhere.
+- Streaming/chunked export. `WorldGenerator::generate` (`src/generator.rs`) materializes the entire dataset (`Vec::with_capacity(num_records)` per entity) in memory before any export call — no streaming writer, and no Iceberg/Delta Lake output targets exist alongside the current Parquet/JSON export.
+
 ## Known issues
 
 - `multimodal_augmentation.rs` (vision, audio, sensor, and temporal augmentors) was merged with Rust-level coverage but, like the other modules above, has no Python bindings yet — it is not usable from `import pysynthdata`.
