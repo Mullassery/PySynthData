@@ -16,6 +16,7 @@ pub mod generator;
 pub mod monitoring;
 pub mod multimodal_augmentation;
 pub mod parser;
+pub mod privacy;
 pub mod real_world_mess;
 pub mod research;
 pub mod robotics;
@@ -27,6 +28,9 @@ pub mod validation;
 use data_quality::DataQualityAnalyzer;
 use enterprise::{DataGovernanceManager, DataGovernancePolicy as RustDataGovernancePolicy};
 use generator::WorldGenerator;
+use privacy::PrivacyBudget;
+use rand::rngs::StdRng;
+use rand::SeedableRng;
 use schema::{Cardinality, Constraint, ConstraintType, Field, FieldType, Relationship, Schema};
 
 #[pymodule]
@@ -41,6 +45,7 @@ fn pysynthdata(_py: Python, m: &pyo3::Bound<pyo3::types::PyModule>) -> PyResult<
     m.add_class::<PyDataGovernancePolicy>()?;
     m.add_class::<PyAuditEvent>()?;
     m.add_class::<PyAuditEventType>()?;
+    m.add_class::<PyPrivacyBudget>()?;
     Ok(())
 }
 
@@ -291,6 +296,200 @@ impl PyWorldGenerator {
 
             Ok(result.into())
         })
+    }
+
+    /// Generate rows, then add Laplace-mechanism differential-privacy noise to
+    /// every Int/Float field, spending `epsilon_to_spend` from `budget`.
+    /// Returns the same shape as `generate()` plus a `"privacy"` dict:
+    /// `{"epsilon_spent", "delta_spent", "fields_privatized", "values_perturbed",
+    /// "budget_remaining_epsilon"}`. Raises if `budget` doesn't have
+    /// `epsilon_to_spend` left, or if the schema has no Int/Float fields to
+    /// privatize.
+    fn generate_private(
+        &self,
+        num_records: usize,
+        seed: u64,
+        budget: &mut PyPrivacyBudget,
+        epsilon_to_spend: f64,
+    ) -> PyResult<PyObject> {
+        let mut world = self
+            .inner
+            .generate(num_records, seed)
+            .map_err(value_error)?;
+        let report = self.inner.evaluate(&world);
+
+        let mut rng = StdRng::seed_from_u64(seed ^ 0x5054_5259); // distinct stream from row generation
+        let privacy_report = privacy::privatize_world(
+            &mut rng,
+            self.inner.schema(),
+            &mut world.entities,
+            &mut budget.inner,
+            epsilon_to_spend,
+        )
+        .map_err(value_error)?;
+
+        Python::with_gil(|py| {
+            let entities_dict = pyo3::types::PyDict::new_bound(py);
+            for (entity_name, rows) in &world.entities {
+                let mut py_rows = Vec::with_capacity(rows.len());
+                for row in rows {
+                    py_rows.push(json_to_py(py, row)?);
+                }
+                let list = pyo3::types::PyList::new_bound(py, &py_rows);
+                entities_dict.set_item(entity_name, list)?;
+            }
+
+            let metadata = pyo3::types::PyDict::new_bound(py);
+            metadata.set_item("seed", world.metadata.seed)?;
+            metadata.set_item("record_count", world.metadata.record_count)?;
+            metadata.set_item(
+                "generation_time_ms",
+                world.metadata.generation_time_ms as u64,
+            )?;
+
+            let quality = pyo3::types::PyDict::new_bound(py);
+            quality.set_item("fidelity_score", report.fidelity_score)?;
+            quality.set_item("total_checks", report.total_checks)?;
+            quality.set_item("null_violations", report.null_violations)?;
+            quality.set_item("uniqueness_violations", report.uniqueness_violations)?;
+            quality.set_item("constraint_violations", report.constraint_violations)?;
+
+            let privacy_dict = pyo3::types::PyDict::new_bound(py);
+            privacy_dict.set_item("epsilon_spent", privacy_report.epsilon_spent)?;
+            privacy_dict.set_item("delta_spent", privacy_report.delta_spent)?;
+            privacy_dict.set_item(
+                "fields_privatized",
+                privacy_report
+                    .fields_privatized
+                    .iter()
+                    .map(|(e, f)| format!("{e}.{f}"))
+                    .collect::<Vec<_>>(),
+            )?;
+            privacy_dict.set_item("values_perturbed", privacy_report.values_perturbed)?;
+            privacy_dict.set_item("budget_remaining_epsilon", budget.inner.remaining_epsilon())?;
+
+            let result = pyo3::types::PyDict::new_bound(py);
+            result.set_item("entities", entities_dict)?;
+            result.set_item("metadata", metadata)?;
+            result.set_item("quality", quality)?;
+            result.set_item("privacy", privacy_dict)?;
+
+            Ok(result.into())
+        })
+    }
+
+    /// Generate rows in `chunk_size`-sized batches, calling `on_chunk(entity_name,
+    /// rows: list[dict])` for each batch instead of building one big in-memory
+    /// result. Entities that are a foreign-key source for another entity are
+    /// still fully retained in memory internally (required for correct FK
+    /// sampling) -- everything else streams with peak memory bounded by
+    /// `chunk_size`, not `num_records`. Returns a metadata dict (seed,
+    /// record_count, generation_time_ms) once every entity has been streamed.
+    #[pyo3(signature = (num_records, seed, chunk_size, on_chunk))]
+    fn generate_streaming(
+        &self,
+        py: Python<'_>,
+        num_records: usize,
+        seed: u64,
+        chunk_size: usize,
+        on_chunk: PyObject,
+    ) -> PyResult<PyObject> {
+        let metadata = py
+            .allow_threads(|| -> anyhow::Result<generator::WorldMetadata> {
+                self.inner.generate_streaming(
+                    num_records,
+                    seed,
+                    chunk_size,
+                    |entity_name, chunk| {
+                        Python::with_gil(|py| -> anyhow::Result<()> {
+                            let mut py_rows = Vec::with_capacity(chunk.len());
+                            for row in chunk {
+                                py_rows.push(
+                                    json_to_py(py, row)
+                                        .map_err(|e| anyhow::anyhow!(e.to_string()))?,
+                                );
+                            }
+                            let list = pyo3::types::PyList::new_bound(py, &py_rows);
+                            on_chunk
+                                .call1(py, (entity_name, list))
+                                .map_err(|e| anyhow::anyhow!(e.to_string()))?;
+                            Ok(())
+                        })
+                    },
+                )
+            })
+            .map_err(value_error)?;
+
+        Python::with_gil(|py| {
+            let metadata_dict = pyo3::types::PyDict::new_bound(py);
+            metadata_dict.set_item("seed", metadata.seed)?;
+            metadata_dict.set_item("record_count", metadata.record_count)?;
+            metadata_dict.set_item("generation_time_ms", metadata.generation_time_ms as u64)?;
+            Ok(metadata_dict.into())
+        })
+    }
+}
+
+/// Real epsilon-delta privacy budget: tracks how much has been spent via
+/// `WorldGenerator.generate_private()` and refuses to overspend. See
+/// `privacy::PrivacyBudget` for the accounting rules (sequential
+/// composition).
+#[pyclass(name = "PrivacyBudget")]
+pub struct PyPrivacyBudget {
+    inner: PrivacyBudget,
+}
+
+#[pymethods]
+impl PyPrivacyBudget {
+    #[new]
+    fn new(epsilon: f64, delta: f64) -> PyResult<Self> {
+        Ok(PyPrivacyBudget {
+            inner: PrivacyBudget::new(epsilon, delta).map_err(value_error)?,
+        })
+    }
+
+    #[getter]
+    fn total_epsilon(&self) -> f64 {
+        self.inner.total_epsilon()
+    }
+
+    #[getter]
+    fn total_delta(&self) -> f64 {
+        self.inner.total_delta()
+    }
+
+    #[getter]
+    fn spent_epsilon(&self) -> f64 {
+        self.inner.spent_epsilon()
+    }
+
+    #[getter]
+    fn spent_delta(&self) -> f64 {
+        self.inner.spent_delta()
+    }
+
+    #[getter]
+    fn remaining_epsilon(&self) -> f64 {
+        self.inner.remaining_epsilon()
+    }
+
+    #[getter]
+    fn remaining_delta(&self) -> f64 {
+        self.inner.remaining_delta()
+    }
+
+    fn is_exhausted(&self) -> bool {
+        self.inner.is_exhausted()
+    }
+
+    fn __repr__(&self) -> String {
+        format!(
+            "PrivacyBudget(epsilon={:.4}/{:.4}, delta={:.6}/{:.6})",
+            self.inner.spent_epsilon(),
+            self.inner.total_epsilon(),
+            self.inner.spent_delta(),
+            self.inner.total_delta()
+        )
     }
 }
 

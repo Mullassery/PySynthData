@@ -7,13 +7,64 @@ Rust. Nothing here reimplements generation in pure Python; `Schema` and
 and delegate every real piece of work to it.
 """
 
-from typing import Optional, Dict, Any, List
+from typing import Optional, Dict, Any, List, Iterator, Tuple
 import json
 from pathlib import Path
 
 import pandas as pd
+import pyarrow as pa
+import pyarrow.parquet as pq
 
 from pysynthdata import _core
+
+
+class PrivacyBudget:
+    """Real epsilon-delta differential-privacy budget, backed by
+    `_core.PrivacyBudget`. Tracks how much has been spent across
+    `WorldGenerator.generate_private()` calls and refuses to overspend --
+    each `generate_private()` call raises `ValueError` rather than silently
+    exceeding the declared total.
+
+    Example:
+        >>> budget = PrivacyBudget(epsilon=1.0, delta=1e-5)
+        >>> world = generator.generate_private(1000, seed=42, budget=budget, epsilon=0.3)
+        >>> budget.remaining_epsilon
+        0.7
+    """
+
+    def __init__(self, epsilon: float, delta: float = 0.0):
+        self._inner = _core.PrivacyBudget(epsilon, delta)
+
+    @property
+    def total_epsilon(self) -> float:
+        return self._inner.total_epsilon
+
+    @property
+    def total_delta(self) -> float:
+        return self._inner.total_delta
+
+    @property
+    def spent_epsilon(self) -> float:
+        return self._inner.spent_epsilon
+
+    @property
+    def spent_delta(self) -> float:
+        return self._inner.spent_delta
+
+    @property
+    def remaining_epsilon(self) -> float:
+        return self._inner.remaining_epsilon
+
+    @property
+    def remaining_delta(self) -> float:
+        return self._inner.remaining_delta
+
+    @property
+    def is_exhausted(self) -> bool:
+        return self._inner.is_exhausted()
+
+    def __repr__(self) -> str:
+        return repr(self._inner)
 
 
 class Schema:
@@ -117,6 +168,144 @@ class WorldGenerator:
         result = self._inner.generate(num_records, seed)
         return GeneratedWorld(result)
 
+    def generate_private(
+        self,
+        num_records: int,
+        seed: int,
+        budget: PrivacyBudget,
+        epsilon: float,
+    ) -> "GeneratedWorld":
+        """Generate rows, then add Laplace-mechanism differential-privacy
+        noise to every Int/Float field, spending `epsilon` from `budget`.
+
+        Each numeric field's noise scale is calibrated from its
+        schema-declared range constraint (or, if none exists, the observed
+        spread of its generated values) divided by `epsilon` split evenly
+        across every numeric field being privatized -- standard Laplace
+        mechanism calibration under sequential composition, not a fabricated
+        "privacy" flag. Raises `ValueError` if `budget` doesn't have
+        `epsilon` left, or if the schema has no Int/Float fields.
+
+        Example:
+            >>> budget = PrivacyBudget(epsilon=1.0, delta=1e-5)
+            >>> world = generator.generate_private(1000, seed=42, budget=budget, epsilon=0.3)
+            >>> world.privacy_report["values_perturbed"]
+        """
+        result = self._inner.generate_private(num_records, seed, budget._inner, epsilon)
+        return GeneratedWorld(result)
+
+    def generate_streaming(
+        self,
+        num_records: int,
+        seed: int,
+        chunk_size: int = 10_000,
+        queue_size: int = 2,
+    ) -> Iterator[Tuple[str, List[Dict[str, Any]]]]:
+        """Generate rows in `chunk_size`-sized batches instead of building one
+        big in-memory result -- for large `num_records` where materializing
+        every row at once (what `generate()` does) is the memory bottleneck.
+
+        Yields `(entity_name, rows)` pairs. Rust-side generation runs on a
+        background thread (releasing the GIL for the duration -- see
+        `generate_streaming` in `src/lib.rs`) and hands each chunk to this
+        thread through a bounded `queue.Queue`. That queue -- not "collect
+        everything, then yield" -- is what actually bounds memory: at most
+        `queue_size` chunks are ever buffered, so the producer thread blocks
+        on `queue.put()` until this generator's consumer catches up. A
+        naive callback-appends-to-a-list wrapper would silently defeat the
+        whole point by materializing every chunk before yielding the first
+        one; this doesn't.
+
+        Entities that are a foreign-key source for another entity are still
+        fully generated internally before being streamed out (required for
+        correct FK sampling) -- everything else has peak memory bounded by
+        `chunk_size * queue_size`, not `num_records`.
+
+        Example:
+            >>> for entity_name, rows in generator.generate_streaming(1_000_000, seed=1, chunk_size=50_000):
+            ...     print(entity_name, len(rows))
+        """
+        import queue
+        import threading
+
+        q: "queue.Queue[Any]" = queue.Queue(maxsize=queue_size)
+        sentinel = object()
+        errors: List[BaseException] = []
+
+        def on_chunk(entity_name: str, rows: List[Dict[str, Any]]) -> None:
+            q.put((entity_name, rows))
+
+        def worker() -> None:
+            try:
+                self._inner.generate_streaming(num_records, seed, chunk_size, on_chunk)
+            except BaseException as exc:  # noqa: BLE001 - re-raised on the consumer thread below
+                errors.append(exc)
+            finally:
+                q.put(sentinel)
+
+        thread = threading.Thread(target=worker, daemon=True)
+        thread.start()
+        try:
+            while True:
+                item = q.get()
+                if item is sentinel:
+                    break
+                yield item
+        finally:
+            thread.join()
+        if errors:
+            raise errors[0]
+
+    def to_parquet_streaming(
+        self,
+        num_records: int,
+        seed: int,
+        out_dir: str,
+        chunk_size: int = 10_000,
+    ) -> Dict[str, int]:
+        """Generate and write directly to one Parquet file per entity under
+        `out_dir`, writing each chunk as a row group via `pyarrow.parquet.
+        ParquetWriter` instead of building a pandas DataFrame (or any other
+        full-entity structure) first. Returns `{entity_name: row_count}`.
+
+        Calls the Rust core's chunked generation directly (not through
+        `generate_streaming()` above) since a single synchronous write pass
+        needs no background thread here -- each chunk is written to its
+        entity's Parquet writer and dropped immediately, so peak memory for
+        large, non-FK-source entities is bounded by `chunk_size`, not
+        `num_records`. This is the real fix for "generation materializes the
+        entire dataset in memory before any export call."
+
+        Example:
+            >>> counts = generator.to_parquet_streaming(5_000_000, seed=1, out_dir="out/", chunk_size=50_000)
+            >>> counts["orders"]
+            5000000
+        """
+        out_path = Path(out_dir)
+        out_path.mkdir(parents=True, exist_ok=True)
+
+        writers: Dict[str, pq.ParquetWriter] = {}
+        row_counts: Dict[str, int] = {}
+
+        def on_chunk(entity_name: str, rows: List[Dict[str, Any]]) -> None:
+            if not rows:
+                return
+            table = pa.Table.from_pylist(rows)
+            writer = writers.get(entity_name)
+            if writer is None:
+                writer = pq.ParquetWriter(str(out_path / f"{entity_name}.parquet"), table.schema)
+                writers[entity_name] = writer
+            writer.write_table(table)
+            row_counts[entity_name] = row_counts.get(entity_name, 0) + len(rows)
+
+        try:
+            self._inner.generate_streaming(num_records, seed, chunk_size, on_chunk)
+        finally:
+            for writer in writers.values():
+                writer.close()
+
+        return row_counts
+
     @classmethod
     def from_yaml(cls, yaml_path: str) -> "WorldGenerator":
         """Create a generator directly from a YAML schema file."""
@@ -133,8 +322,16 @@ class GeneratedWorld:
         self.data: Dict[str, List[Dict[str, Any]]] = result["entities"]
         self.metadata: Dict[str, Any] = result["metadata"]
         self._quality: Dict[str, Any] = result["quality"]
+        self._privacy: Optional[Dict[str, Any]] = result.get("privacy")
         self.seed: int = self.metadata["seed"]
         self.num_records: int = self.metadata["record_count"]
+
+    @property
+    def privacy_report(self) -> Optional[Dict[str, Any]]:
+        """Real epsilon/delta spend + perturbation counts from
+        `WorldGenerator.generate_private()` -- `None` for worlds produced by
+        plain `generate()`, which never touched the privacy budget."""
+        return dict(self._privacy) if self._privacy is not None else None
 
     def to_pandas(self, entity: str) -> pd.DataFrame:
         """Convert one entity's generated rows to a pandas DataFrame."""

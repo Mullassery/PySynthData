@@ -170,60 +170,17 @@ impl WorldGenerator {
             let mut unique_seen: HashMap<String, HashSet<String>> = HashMap::new();
 
             for _ in 0..num_records {
-                let mut obj = Map::new();
-                for (field_name, field) in &entity.fields {
-                    let key = (entity_name.clone(), field_name.clone());
-
-                    if field.nullable && rng.gen_bool(0.05) {
-                        obj.insert(field_name.clone(), Value::Null);
-                        continue;
-                    }
-
-                    let fk_pool: Option<Vec<Value>> =
-                        fk_sources.get(&key).and_then(|(src_entity, src_field)| {
-                            entities.get(src_entity).map(|rows| {
-                                rows.iter()
-                                    .filter_map(|r| r.get(src_field).cloned())
-                                    .collect::<Vec<Value>>()
-                            })
-                        });
-
-                    let range = range_constraints.get(&key).copied();
-                    let length = length_constraints.get(&key).copied();
-                    let pattern = pattern_constraints.get(&key);
-
-                    let mut value = generate_field_value(
-                        &mut rng,
-                        field,
-                        range,
-                        length,
-                        pattern,
-                        fk_pool.as_deref(),
-                    );
-
-                    if field.unique {
-                        let seen = unique_seen.entry(field_name.clone()).or_default();
-                        let mut attempts = 0;
-                        while seen.contains(&value.to_string()) && attempts < 20 {
-                            value = generate_field_value(
-                                &mut rng,
-                                field,
-                                range,
-                                length,
-                                pattern,
-                                fk_pool.as_deref(),
-                            );
-                            attempts += 1;
-                        }
-                        if seen.contains(&value.to_string()) {
-                            value = uniquify(value, seen.len());
-                        }
-                        seen.insert(value.to_string());
-                    }
-
-                    obj.insert(field_name.clone(), value);
-                }
-                rows.push(Value::Object(obj));
+                rows.push(generate_row(
+                    &mut rng,
+                    entity_name,
+                    entity,
+                    &range_constraints,
+                    &length_constraints,
+                    &pattern_constraints,
+                    &fk_sources,
+                    &entities,
+                    &mut unique_seen,
+                ));
             }
 
             entities.insert(entity_name.clone(), rows);
@@ -240,6 +197,103 @@ impl WorldGenerator {
                 record_count,
                 generation_time_ms,
             },
+        })
+    }
+
+    /// Generate rows in `chunk_size`-sized batches, calling `on_chunk(entity_name,
+    /// chunk)` for each batch instead of returning one `GeneratedWorld` with every
+    /// row materialized in memory at once.
+    ///
+    /// Foreign-key sampling needs a referenced parent entity's rows to already
+    /// exist in full, so entities that other entities' relationships point at
+    /// (`from_entity` in the schema) are still fully retained in memory here --
+    /// that's inherent to relational generation, not a bug. The memory-footprint
+    /// fix this method provides is for entities that are *not* an FK source
+    /// (typically the largest "leaf" tables, e.g. orders/events/transactions
+    /// referencing customers): their rows are hashed off to `on_chunk` and
+    /// dropped immediately after, so peak memory for those entities is bounded
+    /// by `chunk_size`, not `num_records`.
+    pub fn generate_streaming(
+        &self,
+        num_records: usize,
+        seed: u64,
+        chunk_size: usize,
+        mut on_chunk: impl FnMut(&str, &[Value]) -> Result<()>,
+    ) -> Result<WorldMetadata> {
+        let start = std::time::Instant::now();
+        self.schema
+            .validate()
+            .map_err(|errors| anyhow::anyhow!(errors.join("; ")))?;
+        anyhow::ensure!(chunk_size > 0, "chunk_size must be greater than 0");
+
+        let mut rng = StdRng::seed_from_u64(seed);
+        let order = topological_order(&self.schema);
+
+        let (range_constraints, length_constraints, pattern_constraints) =
+            index_constraints(&self.schema.constraints);
+        let fk_sources = index_relationships(&self.schema);
+
+        // Entities referenced as an FK source must be kept fully in memory for
+        // downstream entities to sample from; everything else can stream.
+        let referenced_entities: HashSet<String> = self
+            .schema
+            .relationships
+            .iter()
+            .map(|r| r.from_entity.clone())
+            .collect();
+
+        let mut entities: HashMap<String, Vec<Value>> = HashMap::new();
+        let mut record_count = 0usize;
+
+        for entity_name in &order {
+            let Some(entity) = self.schema.entities.get(entity_name) else {
+                continue;
+            };
+            let must_retain = referenced_entities.contains(entity_name);
+            let mut retained_rows: Vec<Value> = if must_retain {
+                Vec::with_capacity(num_records)
+            } else {
+                Vec::new()
+            };
+            let mut unique_seen: HashMap<String, HashSet<String>> = HashMap::new();
+            let mut chunk: Vec<Value> = Vec::with_capacity(chunk_size.min(num_records));
+
+            for _ in 0..num_records {
+                let row = generate_row(
+                    &mut rng,
+                    entity_name,
+                    entity,
+                    &range_constraints,
+                    &length_constraints,
+                    &pattern_constraints,
+                    &fk_sources,
+                    &entities,
+                    &mut unique_seen,
+                );
+                if must_retain {
+                    retained_rows.push(row.clone());
+                }
+                chunk.push(row);
+                if chunk.len() >= chunk_size {
+                    on_chunk(entity_name, &chunk)?;
+                    record_count += chunk.len();
+                    chunk.clear();
+                }
+            }
+            if !chunk.is_empty() {
+                on_chunk(entity_name, &chunk)?;
+                record_count += chunk.len();
+            }
+
+            if must_retain {
+                entities.insert(entity_name.clone(), retained_rows);
+            }
+        }
+
+        Ok(WorldMetadata {
+            seed,
+            record_count,
+            generation_time_ms: start.elapsed().as_millis(),
         })
     }
 
@@ -316,6 +370,66 @@ impl GeneratedWorld {
     pub fn to_json(&self) -> Result<String> {
         Ok(serde_json::to_string_pretty(&self.entities)?)
     }
+}
+
+/// Generate a single row for `entity_name`, identical logic to the inner loop
+/// body `generate()` used before it was factored out so `generate_streaming()`
+/// could reuse it without duplicating the field-generation/uniqueness/FK-pool
+/// handling.
+#[allow(clippy::too_many_arguments)]
+fn generate_row(
+    rng: &mut StdRng,
+    entity_name: &str,
+    entity: &crate::schema::Entity,
+    range_constraints: &RangeConstraints,
+    length_constraints: &LengthConstraints,
+    pattern_constraints: &PatternConstraints,
+    fk_sources: &HashMap<ConstraintKey, (String, String)>,
+    entities: &HashMap<String, Vec<Value>>,
+    unique_seen: &mut HashMap<String, HashSet<String>>,
+) -> Value {
+    let mut obj = Map::new();
+    for (field_name, field) in &entity.fields {
+        let key = (entity_name.to_string(), field_name.clone());
+
+        if field.nullable && rng.gen_bool(0.05) {
+            obj.insert(field_name.clone(), Value::Null);
+            continue;
+        }
+
+        let fk_pool: Option<Vec<Value>> =
+            fk_sources.get(&key).and_then(|(src_entity, src_field)| {
+                entities.get(src_entity).map(|rows| {
+                    rows.iter()
+                        .filter_map(|r| r.get(src_field).cloned())
+                        .collect::<Vec<Value>>()
+                })
+            });
+
+        let range = range_constraints.get(&key).copied();
+        let length = length_constraints.get(&key).copied();
+        let pattern = pattern_constraints.get(&key);
+
+        let mut value =
+            generate_field_value(rng, field, range, length, pattern, fk_pool.as_deref());
+
+        if field.unique {
+            let seen = unique_seen.entry(field_name.clone()).or_default();
+            let mut attempts = 0;
+            while seen.contains(&value.to_string()) && attempts < 20 {
+                value =
+                    generate_field_value(rng, field, range, length, pattern, fk_pool.as_deref());
+                attempts += 1;
+            }
+            if seen.contains(&value.to_string()) {
+                value = uniquify(value, seen.len());
+            }
+            seen.insert(value.to_string());
+        }
+
+        obj.insert(field_name.clone(), value);
+    }
+    Value::Object(obj)
 }
 
 /// Order entities so that an entity referenced as `from_entity` in a
@@ -795,6 +909,115 @@ mod tests {
         assert_eq!(report.total_violations(), 0);
         assert_eq!(report.fidelity_score, 1.0);
         assert!(report.total_checks > 0);
+    }
+
+    #[test]
+    fn test_generate_streaming_yields_same_rows_as_generate() {
+        let schema = create_test_schema();
+        let gen = WorldGenerator::new(schema);
+
+        let world = gen.generate(250, 11).unwrap();
+
+        let mut streamed_rows: Vec<Value> = Vec::new();
+        let mut chunk_sizes: Vec<usize> = Vec::new();
+        let metadata = gen
+            .generate_streaming(250, 11, 32, |entity_name, chunk| {
+                assert_eq!(entity_name, "Customer");
+                chunk_sizes.push(chunk.len());
+                streamed_rows.extend_from_slice(chunk);
+                Ok(())
+            })
+            .unwrap();
+
+        // Same seed -> identical rows, whether generated all at once or in chunks.
+        assert_eq!(world.entities["Customer"], streamed_rows);
+        assert_eq!(metadata.record_count, 250);
+        // 250 rows in chunks of 32 -> seven full chunks + one partial (26).
+        assert_eq!(chunk_sizes, vec![32, 32, 32, 32, 32, 32, 32, 26]);
+    }
+
+    #[test]
+    fn test_generate_streaming_retains_fk_parent_but_not_leaf_entity() {
+        let mut schema = Schema::new();
+        schema.add_entity("Customer".to_string());
+        schema.add_entity("Order".to_string());
+
+        let mut customer_fields = IndexMap::new();
+        customer_fields.insert(
+            "id".to_string(),
+            Field {
+                name: "id".to_string(),
+                field_type: FieldType::Uuid,
+                nullable: false,
+                unique: true,
+                constraints: vec![],
+            },
+        );
+        if let Some(e) = schema.entities.get_mut("Customer") {
+            e.fields = customer_fields;
+            e.primary_key = Some("id".to_string());
+        }
+
+        let mut order_fields = IndexMap::new();
+        order_fields.insert(
+            "id".to_string(),
+            Field {
+                name: "id".to_string(),
+                field_type: FieldType::Uuid,
+                nullable: false,
+                unique: true,
+                constraints: vec![],
+            },
+        );
+        order_fields.insert(
+            "customer_id".to_string(),
+            Field {
+                name: "customer_id".to_string(),
+                field_type: FieldType::Uuid,
+                nullable: false,
+                unique: false,
+                constraints: vec![],
+            },
+        );
+        if let Some(e) = schema.entities.get_mut("Order") {
+            e.fields = order_fields;
+            e.primary_key = Some("id".to_string());
+        }
+
+        schema.add_relationship(Relationship {
+            from_entity: "Customer".to_string(),
+            to_entity: "Order".to_string(),
+            from_field: "id".to_string(),
+            to_field: "customer_id".to_string(),
+            cardinality: Cardinality::OneToMany,
+        });
+
+        let gen = WorldGenerator::new(schema);
+
+        let mut streamed_order_customer_ids: HashSet<String> = HashSet::new();
+        let mut streamed_customer_ids: HashSet<String> = HashSet::new();
+        gen.generate_streaming(100, 5, 10, |entity_name, chunk| {
+            for row in chunk {
+                match entity_name {
+                    "Customer" => {
+                        streamed_customer_ids.insert(row["id"].as_str().unwrap().to_string());
+                    }
+                    "Order" => {
+                        streamed_order_customer_ids
+                            .insert(row["customer_id"].as_str().unwrap().to_string());
+                    }
+                    other => panic!("unexpected entity {other}"),
+                }
+            }
+            Ok(())
+        })
+        .unwrap();
+
+        // Every streamed Order.customer_id must reference a real streamed Customer.id --
+        // proves the FK-source (Customer) entity was still fully available in memory
+        // for sampling even though Order itself streamed without full retention.
+        assert!(streamed_order_customer_ids.is_subset(&streamed_customer_ids));
+        assert!(!streamed_customer_ids.is_empty());
     }
 
     #[test]
