@@ -62,6 +62,22 @@ world = generator.generate(num_records=5000, seed=7)
 
 See [`examples/banking_schema.yaml`](examples/banking_schema.yaml) for the full YAML shape (entities, fields, relationships, constraints).
 
+### Inferring a schema from a live database
+
+```bash
+pip install pysynthdata[db]
+
+# One table
+pysynthdata infer-schema --db-url "postgresql+psycopg://user:pass@host/dbname" \
+    --table customers --output customers_schema.yaml
+
+# Every table, including foreign-key relationships between them
+pysynthdata infer-schema --db-url "mysql+pymysql://user:pass@host/dbname" \
+    --all-tables --output full_schema.yaml
+```
+
+`infer-schema` connects to a real Postgres, MySQL, or SQLite database and reflects actual table structure via SQLAlchemy's `inspect()` API (`python/pysynthdata/db_schema.py`) — column types, nullability, primary keys, unique constraints, and foreign keys are read from the database itself, not guessed. The output is a YAML file in the same `entities`/`relationships` shape as [`examples/banking_schema.yaml`](examples/banking_schema.yaml), loadable directly with `Schema.from_yaml()` / `WorldGenerator.from_yaml()`. Postgres and MySQL go through the identical SQLAlchemy code path — only the `--db-url` scheme differs (`postgresql+psycopg://...` / `postgresql+psycopg2://...` for Postgres, `mysql+pymysql://...` for MySQL); each backend's driver (`psycopg`/`psycopg2`, `pymysql`) needs to be installed separately since SQLAlchemy doesn't bundle DB drivers itself. `--all-tables` also emits a `relationships` entry for every foreign key found between the inferred tables, with `cardinality` set to `1:1` when the FK column is itself unique or a primary key, `1:n` otherwise.
+
 ### Differential privacy and large-batch streaming export
 
 ```python

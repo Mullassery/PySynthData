@@ -4,7 +4,7 @@ build-backend = "maturin"
 
 [project]
 name = "pysynthdata"
-version = "0.4.0"
+version = "0.5.0"
 description = "Generate synthetic relational datasets from a schema: real row generation, foreign keys, constraints, and quality scoring."
 readme = "README.md"
 license = {text = "Proprietary"}
@@ -32,12 +32,19 @@ dev = [
     "ruff>=0.1",
     "mypy>=1.0",
 ]
+db = [
+    "sqlalchemy>=2.0",
+]
+
+[project.scripts]
+pysynthdata = "pysynthdata.cli:main"
 
 [tool.maturin]
 manifest-path = "Cargo.toml"
 python-source = "python"
 module-name = "pysynthdata._core"
 features = ["pyo3/extension-module"]
+include = ["LICENSE"]
 
 [tool.pytest.ini_options]
 testpaths = ["python/tests"]
