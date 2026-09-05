@@ -7,7 +7,7 @@ name = "pysynthdata"
 version = "0.5.0"
 description = "Generate synthetic relational datasets from a schema: real row generation, foreign keys, constraints, and quality scoring."
 readme = "README.md"
-license = {text = "Proprietary"}
+license = "Apache-2.0"
 authors = [{name = "Georgi Mullassery", email = "mullassery@gmail.com"}]
 requires-python = ">=3.10"
 classifiers = [

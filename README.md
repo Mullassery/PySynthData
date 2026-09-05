@@ -5,7 +5,7 @@
 Define entities, fields, foreign-key relationships, and constraints; get back real, typed rows — with foreign keys that actually point at rows that exist, constraints that are actually enforced, and a quality report that actually measures violations instead of returning a hardcoded number. Row generation and quality scoring happen in a compiled Rust core; the Python layer is a thin wrapper around it.
 
 [![Python 3.10+](https://img.shields.io/badge/Python-3.10%2B-blue)](https://www.python.org)
-[![License: Proprietary](https://img.shields.io/badge/License-Proprietary-blue.svg)](./LICENSE)
+[![License: Apache 2.0](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](./LICENSE)
 
 ---
 
@@ -149,4 +149,4 @@ Most automated coverage is still the Rust `cargo test` suite above (CI runs it o
 
 ## License
 
-Proprietary — free to use with explicit attribution. See [LICENSE](./LICENSE).
+This project is licensed under the [Apache License 2.0](LICENSE).
