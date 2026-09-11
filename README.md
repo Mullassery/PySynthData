@@ -1,17 +1,45 @@
 # PySynthData
 
+## Problem
+
+Testing and demoing data pipelines usually means either using real
+(sensitive, hard-to-share) production data, or hand-writing fake rows that
+don't respect the foreign-key/constraint structure a real schema has —
+so joins don't reflect reality and quality checks have nothing real to
+catch.
+
+## Solution
+
 **Generate synthetic relational datasets from a schema.**
 
 Define entities, fields, foreign-key relationships, and constraints; get back real, typed rows — with foreign keys that actually point at rows that exist, constraints that are actually enforced, and a quality report that actually measures violations instead of returning a hardcoded number. Row generation and quality scoring happen in a compiled Rust core; the Python layer is a thin wrapper around it.
 
+[![PyPI](https://img.shields.io/pypi/v/pysynthdata)](https://pypi.org/project/pysynthdata/)
 [![Python 3.10+](https://img.shields.io/badge/Python-3.10%2B-blue)](https://www.python.org)
+[![CI](https://github.com/Mullassery/PySynthData/actions/workflows/ci.yml/badge.svg)](https://github.com/Mullassery/PySynthData/actions/workflows/ci.yml)
 [![License: Apache 2.0](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](./LICENSE)
 
 ---
 
+## Use cases
+
+- **Generating realistic test/demo data for a relational schema** without
+  hand-writing fixtures — FK integrity and constraints are enforced, not
+  approximated.
+- **Reverse-engineering a schema from a live database** you don't want to
+  hand-model — `infer-schema` reflects real Postgres/MySQL/SQLite
+  structure via SQLAlchemy.
+- **Privacy-safe synthetic data with a real epsilon-delta budget** —
+  `generate_private()`, when the source data's actual values shouldn't
+  leak even through a synthetic derivative.
+- **Not yet a good fit for:** robotics/ROS2 simulation data, behavioral
+  state-machine scenarios, or multimodal (vision/audio/sensor) data — all
+  real in the Rust core but not yet exposed through the Python API (see
+  [Roadmap](#roadmap)).
+
 ## Status
 
-Early (`0.4.0`). The core pipeline — schema definition, row generation, foreign keys, constraints, quality scoring, pandas/Parquet/JSON export, differential-privacy noise injection, and chunked/streaming generation — is implemented and tested end to end. Several bundled Rust modules (robotics fleet simulation, ROS2 bridge, behavioral state machines, domain research knowledge base, monitoring/drift detection, "real world mess" injectors) exist in the codebase but are **not yet exposed through the Python API** — see [Roadmap](#roadmap).
+`0.5.0`, matches the version live on PyPI — no drift. The core pipeline — schema definition, row generation, foreign keys, constraints, quality scoring, pandas/Parquet/JSON export, differential-privacy noise injection, chunked/streaming generation, and live-database schema inference — is implemented and tested end to end. Several bundled Rust modules (robotics fleet simulation, ROS2 bridge, behavioral state machines, domain research knowledge base, monitoring/drift detection, "real world mess" injectors) exist in the codebase but are **not yet exposed through the Python API** — see [Roadmap](#roadmap).
 
 ## Install
 
