@@ -1,0 +1,52 @@
+name: Bug report
+description: Something in PySynthData doesn't work as documented
+labels: ["bug"]
+body:
+  - type: textarea
+    id: description
+    attributes:
+      label: What happened
+      description: What did you expect, and what actually happened instead?
+    validations:
+      required: true
+  - type: textarea
+    id: repro
+    attributes:
+      label: Minimal reproduction
+      description: >-
+        A minimal schema + Python snippet (or CLI command) that reproduces
+        the issue. If it needs a real Postgres/MySQL database
+        (`infer-schema`), say so — that path is harder for the maintainer to
+        reproduce than a pure schema-generation bug.
+      render: python
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: pysynthdata version
+      description: Output of `python -c "import pysynthdata; print(pysynthdata.__version__)"`
+    validations:
+      required: true
+  - type: input
+    id: python-version
+    attributes:
+      label: Python version
+      description: Output of `python --version`
+    validations:
+      required: true
+  - type: dropdown
+    id: os
+    attributes:
+      label: Operating system
+      options:
+        - Linux
+        - macOS
+        - Windows
+    validations:
+      required: true
+  - type: textarea
+    id: extra
+    attributes:
+      label: Anything else
+      description: Stack trace, logs, or anything else relevant.

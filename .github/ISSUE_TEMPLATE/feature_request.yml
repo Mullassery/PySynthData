@@ -1,0 +1,34 @@
+name: Feature request
+description: Propose something new, or ask for an existing Rust module to be exposed to Python
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: >-
+        Before filing: check `ROADMAP_HONEST.md` — several features
+        (robotics simulation, ROS2 bridge, behavioral state machines,
+        monitoring/drift detection, multimodal augmentation) already exist
+        in the Rust core but aren't exposed through the Python API yet.
+        Asking for one of those to be bound is a legitimate, easy-to-scope
+        request; describing brand-new functionality is a different, larger
+        ask — say which one this is.
+  - type: textarea
+    id: problem
+    attributes:
+      label: What problem does this solve
+      description: What are you trying to do that you currently can't?
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed solution
+      description: >-
+        What would the API/CLI look like? If this is "expose an existing
+        Rust module," name the module (e.g. `src/robotics.rs`).
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
