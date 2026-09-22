@@ -39,6 +39,20 @@ for the real commit history).
 - `python/pysynthdata/__init__.py` `__version__` was hardcoded to `"0.4.0"`
   while `Cargo.toml`/`pyproject.toml` were both at `0.5.0`. Bumped to
   `"0.5.0"` to match.
+- Fixed all 19 `ruff` E501 (line-too-long) findings flagged in
+  `ROADMAP_HONEST.md`: 15 in `pysynthdata/_mcp_tools.py` (wrapped long
+  MCP tool-schema dict literals and f-string error messages across
+  multiple lines), 2 in `python/pysynthdata/api.py` (wrapped docstring
+  `>>> ` example lines), 1 in
+  `python/pysynthdata/scripts/post_install.py` (simplified an
+  overly-defensive `hasattr` version-print example, since `__version__`
+  is always set), and 1 in `python/tests/test_privacy_and_streaming.py`
+  (wrapped a chained `pyarrow` method call). `ruff check .` is now clean
+  (`All checks passed!`).
+- `pyproject.toml`'s `[tool.ruff]` used the deprecated top-level
+  `select` key, which printed a deprecation warning on every `ruff`
+  invocation. Moved `select` into a `[tool.ruff.lint]` table; behavior
+  is unchanged, warning is gone.
 
 ### Added
 - `CONTRIBUTING.md`, `SECURITY.md`, `CODE_OF_CONDUCT.md`,
@@ -51,6 +65,13 @@ for the real commit history).
   the Python test suite). A `dependency-audit` job running `cargo audit`
   (unverified — this sandbox has no network access to crates.io/PyPI, so it
   has not actually been executed against the current dependency tree).
+- CI: a `python-lint` job running `ruff check .`. Added because, after the
+  E501 fixes above, `ruff check .` is genuinely clean under the project's
+  configured ruleset (`select = ["E", "F", "W"]`) — verified `black --check`
+  and `mypy` separately still have real, pre-existing debt (5 files need
+  reformatting under `black`; 29 `mypy --strict` errors), so only `ruff` was
+  wired into CI as a gate; `black`/`mypy` are left as documented, unenforced
+  debt in `ROADMAP_HONEST.md`.
 
 See `ROADMAP_HONEST.md` for what is and isn't implemented, and for
 technical-debt items intentionally left unfixed in this pass.

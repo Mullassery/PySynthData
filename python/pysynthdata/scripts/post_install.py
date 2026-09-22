@@ -10,7 +10,7 @@ def post_install():
 
 🚀 GET STARTED:
    $ python3 -c "from pysynthdata import *; print('PySynthData ready')"
-   $ python3 -c "import pysynthdata; print(f'v{pysynthdata.__version__ if hasattr(pysynthdata, \"__version__\") else \"latest\"}')"
+   $ python3 -c "import pysynthdata; print(pysynthdata.__version__)"
 
 📖 DOCUMENTATION:
    Repo:     https://github.com/Mullassery/PySynthData

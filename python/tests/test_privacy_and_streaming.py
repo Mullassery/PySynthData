@@ -167,7 +167,9 @@ class TestToParquetStreaming:
                 pq.read_table(os.path.join(out_dir, "customers.parquet")).column("id").to_pylist()
             )
             order_customer_ids = (
-                pq.read_table(os.path.join(out_dir, "orders.parquet")).column("customer_id").to_pylist()
+                pq.read_table(os.path.join(out_dir, "orders.parquet"))
+                .column("customer_id")
+                .to_pylist()
             )
 
             assert set(order_customer_ids).issubset(customer_ids)

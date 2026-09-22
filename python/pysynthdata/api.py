@@ -222,7 +222,9 @@ class WorldGenerator:
         `chunk_size * queue_size`, not `num_records`.
 
         Example:
-            >>> for entity_name, rows in generator.generate_streaming(1_000_000, seed=1, chunk_size=50_000):
+            >>> for entity_name, rows in generator.generate_streaming(
+            ...     1_000_000, seed=1, chunk_size=50_000
+            ... ):
             ...     print(entity_name, len(rows))
         """
         import queue
@@ -277,7 +279,9 @@ class WorldGenerator:
         entire dataset in memory before any export call."
 
         Example:
-            >>> counts = generator.to_parquet_streaming(5_000_000, seed=1, out_dir="out/", chunk_size=50_000)
+            >>> counts = generator.to_parquet_streaming(
+            ...     5_000_000, seed=1, out_dir="out/", chunk_size=50_000
+            ... )
             >>> counts["orders"]
             5000000
         """

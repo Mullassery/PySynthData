@@ -12,8 +12,9 @@ built. See `README.md` for the user-facing feature description and
   population, constraint enforcement, quality scoring. Verified with
   `cargo test --lib` — **70/70 passed** — and the full integration suite in
   `tests/*.rs` (behaviors, monitoring, parser, research, robotics,
-  ros2_bridge, schema — **55 additional tests, all passed**, run via
-  `cargo test --verbose`).
+  ros2_bridge, schema — **65 additional tests, all passed** (count updated
+  from a stale "55" during a later quick-fix pass — the suite grew since
+  this section was first written), run via `cargo test --verbose`).
 - **Differential privacy** (`src/privacy.rs`, `PrivacyBudget`,
   `generate_private()`): real Laplace-mechanism noise, real epsilon-delta
   sequential-composition budget accounting that errors on overspend.
@@ -141,19 +142,27 @@ No Rényi DP accountant — only basic sequential composition for
    code shares the same SQLAlchemy `inspect()`-based implementation, so the
    risk is likely low, but it is genuinely unverified here, not "tested and
    just happens to also work for Postgres/MySQL."
-4. **No Python lint/type-check job in CI**: `README.md`'s Development
-   section recommends `ruff check python/ pysynthdata/` and `pyproject.toml`
-   configures `mypy` (`strict = true`) and `black`, but none of the three
-   run in `ci.yml` — only `pytest` was added in this pass. A regression in
-   Python-side style/typing would not be caught by CI today. Ran `ruff
-   check python/ pysynthdata/` manually in this pass: **19 E501
-   (line-too-long, >100 chars) findings**, all cosmetic docstring/test
-   lines, no logic issues — spread across `pysynthdata/_mcp_tools.py` (15),
-   `python/pysynthdata/api.py` (2), `python/pysynthdata/scripts/
-   post_install.py` (1), `python/tests/test_privacy_and_streaming.py` (1).
-   Not fixed here (19 scattered line-wraps is more than a "small safe" edit
-   and risks introducing docstring-formatting churn); left for whoever adds
-   the CI lint job to fix alongside it.
+4. **No Python lint/type-check job in CI** — **partially fixed in a later
+   quick-fix pass (2026-09-22)**: the 19 `ruff` E501 findings described
+   below were fixed (see `CHANGELOG.md`), `ruff check .` is now clean, and
+   a `python-lint` CI job running `ruff check .` was added to `ci.yml`.
+   `black` and `mypy` are still **not** run in CI: `black --check python/
+   pysynthdata/` currently flags 5 files needing reformatting
+   (`python/pysynthdata/scripts/post_install.py`,
+   `python/tests/test_db_schema.py`,
+   `python/tests/test_privacy_and_streaming.py`,
+   `python/pysynthdata/api.py`, `pysynthdata/_mcp_tools.py`), and `mypy`
+   (`strict = true`) reports 29 errors (mostly `no-any-return` from PyO3
+   bindings returning `Any`, plus missing `pyarrow` stubs). Neither was
+   fixed or gated in CI here — that's real, pre-existing debt requiring
+   either code changes or config tuning (e.g. relaxing `mypy` strictness
+   for the PyO3 boundary), not a "small safe" quick fix. Original finding,
+   kept for context: ran `ruff check python/ pysynthdata/` and found **19
+   E501 (line-too-long, >100 chars) findings**, all cosmetic
+   docstring/test lines, no logic issues — spread across
+   `pysynthdata/_mcp_tools.py` (15), `python/pysynthdata/api.py` (2),
+   `python/pysynthdata/scripts/post_install.py` (1),
+   `python/tests/test_privacy_and_streaming.py` (1).
 8. **`python/pysynthdata/scripts/post_install.py` is never actually
    invoked**: it ships inside the packaged wheel (unlike the deleted
    top-level `pysynthdata/scripts/post_install.py`, this one is honest —

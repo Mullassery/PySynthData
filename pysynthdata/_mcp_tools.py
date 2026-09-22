@@ -20,7 +20,10 @@ class PySynthDataMCPTools:
                         "source_id": {"type": "string"},
                         "rows": {"type": "integer"},
                         "privacy_level": {"type": "string", "enum": ["low", "medium", "high"]},
-                        "generator_type": {"type": "string", "enum": ["vae", "gan", "copula", "statistical"]},
+                        "generator_type": {
+                            "type": "string",
+                            "enum": ["vae", "gan", "copula", "statistical"],
+                        },
                     },
                     "required": ["source_id", "rows"],
                 },
@@ -35,7 +38,12 @@ class PySynthDataMCPTools:
                         "metrics": {
                             "type": "array",
                             "items": {"type": "string"},
-                            "enum": ["correlation", "distribution", "statistical_parity", "entropy"],
+                            "enum": [
+                                "correlation",
+                                "distribution",
+                                "statistical_parity",
+                                "entropy",
+                            ],
                         },
                     },
                     "required": ["synthetic_id"],
@@ -48,8 +56,14 @@ class PySynthDataMCPTools:
                     "type": "object",
                     "properties": {
                         "dataset_id": {"type": "string"},
-                        "compliance_standard": {"type": "string", "enum": ["gdpr", "ccpa", "hipaa", "pci_dss"]},
-                        "epsilon": {"type": "number", "description": "Differential privacy epsilon"},
+                        "compliance_standard": {
+                            "type": "string",
+                            "enum": ["gdpr", "ccpa", "hipaa", "pci_dss"],
+                        },
+                        "epsilon": {
+                            "type": "number",
+                            "description": "Differential privacy epsilon",
+                        },
                     },
                     "required": ["dataset_id"],
                 },
@@ -72,13 +86,18 @@ class PySynthDataMCPTools:
             },
             "anonymize_dataset": {
                 "name": "anonymize_dataset",
-                "description": "Anonymize sensitive columns using k-anonymity, l-diversity, t-closeness",
+                "description": (
+                    "Anonymize sensitive columns using k-anonymity, l-diversity, t-closeness"
+                ),
                 "inputSchema": {
                     "type": "object",
                     "properties": {
                         "dataset_id": {"type": "string"},
                         "quasi_identifiers": {"type": "array", "items": {"type": "string"}},
-                        "anonymization_method": {"type": "string", "enum": ["k_anonymity", "l_diversity", "t_closeness"]},
+                        "anonymization_method": {
+                            "type": "string",
+                            "enum": ["k_anonymity", "l_diversity", "t_closeness"],
+                        },
                         "k_value": {"type": "integer"},
                     },
                     "required": ["dataset_id", "quasi_identifiers"],
@@ -95,7 +114,11 @@ class PySynthDataMCPTools:
                         "fairness_metrics": {
                             "type": "array",
                             "items": {"type": "string"},
-                            "enum": ["demographic_parity", "equal_opportunity", "demographic_disparity"],
+                            "enum": [
+                                "demographic_parity",
+                                "equal_opportunity",
+                                "demographic_disparity",
+                            ],
                         },
                     },
                     "required": ["dataset_id"],
@@ -108,7 +131,14 @@ class PySynthDataMCPTools:
                     "type": "object",
                     "properties": {
                         "dataset_id": {"type": "string"},
-                        "debiasing_method": {"type": "string", "enum": ["reweighting", "threshold_optimization", "synthetic_oversampling"]},
+                        "debiasing_method": {
+                            "type": "string",
+                            "enum": [
+                                "reweighting",
+                                "threshold_optimization",
+                                "synthetic_oversampling",
+                            ],
+                        },
                         "target_fairness_metric": {"type": "string"},
                     },
                     "required": ["dataset_id", "debiasing_method"],
@@ -122,7 +152,10 @@ class PySynthDataMCPTools:
                     "properties": {
                         "original_id": {"type": "string"},
                         "synthetic_id": {"type": "string"},
-                        "test_method": {"type": "string", "enum": ["ks_test", "chi_square", "wasserstein"]},
+                        "test_method": {
+                            "type": "string",
+                            "enum": ["ks_test", "chi_square", "wasserstein"],
+                        },
                     },
                     "required": ["original_id", "synthetic_id"],
                 },
@@ -135,7 +168,10 @@ class PySynthDataMCPTools:
                     "properties": {
                         "dataset_id": {"type": "string"},
                         "target_column": {"type": "string"},
-                        "augmentation_method": {"type": "string", "enum": ["smote", "adasyn", "borderline_smote"]},
+                        "augmentation_method": {
+                            "type": "string",
+                            "enum": ["smote", "adasyn", "borderline_smote"],
+                        },
                         "target_ratio": {"type": "number", "minimum": 0.1, "maximum": 1.0},
                     },
                     "required": ["dataset_id", "target_column"],
@@ -161,7 +197,10 @@ class PySynthDataMCPTools:
                     "type": "object",
                     "properties": {
                         "synthetic_id": {"type": "string"},
-                        "task_type": {"type": "string", "enum": ["classification", "regression", "clustering"]},
+                        "task_type": {
+                            "type": "string",
+                            "enum": ["classification", "regression", "clustering"],
+                        },
                         "model_type": {"type": "string"},
                     },
                     "required": ["synthetic_id"],
@@ -246,7 +285,9 @@ class PySynthDataMCPHandler:
         if world is None:
             return {
                 "status": "error",
-                "error": f"Unknown synthetic_id '{synthetic_id}'. Call generate_synthetic_dataset first.",
+                "error": (
+                    f"Unknown synthetic_id '{synthetic_id}'. Call generate_synthetic_dataset first."
+                ),
             }
         report = world.quality_report
         return {
@@ -269,7 +310,11 @@ class PySynthDataMCPHandler:
 
     async def detect_pii_exposure(self, dataset_id: str,
                                  pii_types: Optional[List[str]] = None) -> Dict[str, Any]:
-        return {"dataset_id": dataset_id, "status": "not_implemented", "reason": _NOT_IMPLEMENTED_REASON}
+        return {
+            "dataset_id": dataset_id,
+            "status": "not_implemented",
+            "reason": _NOT_IMPLEMENTED_REASON,
+        }
 
     async def anonymize_dataset(self, dataset_id: str, quasi_identifiers: List[str],
                                anonymization_method: str = "k_anonymity",
@@ -280,7 +325,11 @@ class PySynthDataMCPHandler:
     async def check_fairness_bias(self, dataset_id: str,
                                  protected_attributes: List[str],
                                  fairness_metrics: Optional[List[str]] = None) -> Dict[str, Any]:
-        return {"dataset_id": dataset_id, "status": "not_implemented", "reason": _NOT_IMPLEMENTED_REASON}
+        return {
+            "dataset_id": dataset_id,
+            "status": "not_implemented",
+            "reason": _NOT_IMPLEMENTED_REASON,
+        }
 
     async def debias_dataset(self, dataset_id: str, debiasing_method: str,
                             target_fairness_metric: Optional[str] = None) -> Dict[str, Any]:
@@ -314,7 +363,10 @@ class PySynthDataMCPHandler:
         if world is None:
             return {
                 "status": "error",
-                "error": f"Unknown synthetic_id '{synthetic_id}'. Call generate_synthetic_dataset first.",
+                "error": (
+                    f"Unknown synthetic_id '{synthetic_id}'. "
+                    "Call generate_synthetic_dataset first."
+                ),
             }
 
         out_dir = Path(tempfile.mkdtemp(prefix="pysynthdata_export_"))
