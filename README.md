@@ -142,6 +142,62 @@ An earlier version of this package shipped `GDPRCompliance`, `HIPAACompliance`, 
 
 `pysynthdata/_mcp_tools.py` defines MCP-style tool schemas and async handlers following the same honesty rule: `generate_synthetic_dataset`, `estimate_data_quality`, and `export_synthetic_data` call the real generation engine above and return computed numbers. Tools that would require domain logic this codebase doesn't implement (PII detection, k-anonymity, fairness/bias auditing, ML-utility evaluation, cross-dataset distribution tests) return `{"status": "not_implemented"}` with a reason, instead of a plausible-looking fake number. **This file is not currently wired to a running server** — there is no MCP stdio/HTTP server entry point in this repo that loads it, no test imports it, and it ships in neither the PyPI wheel nor the sdist (`python-source = "python"` in `pyproject.toml` packages only `python/pysynthdata/`, not the top-level `pysynthdata/` directory). Treat it as unused reference code, not a working integration, until something actually starts a server from it.
 
+## vs SDV
+
+SDV (Synthetic Data Vault) is the leading OSS synthetic-tabular-data
+library, and the closest comparison — but it solves a different problem
+than PySynthData does. Tested both against the same real seed dataset
+(the [Palmer Penguins](https://github.com/allisonhorst/palmerpenguins)
+dataset, 333 complete real rows of actual biological measurements, dropped
+rows with real missing values), generating 333 synthetic rows from each.
+
+**The real architectural difference:** SDV's `GaussianCopulaSynthesizer`
+*fits a real statistical model to your actual data* (real marginal
+distributions, real cross-column correlations) and samples from it.
+PySynthData has no fit step at all — you hand-declare a schema (types,
+ranges, enum values, foreign keys) and it generates rows satisfying those
+constraints, with no attempt to match a specific real dataset's
+distribution shape. That difference shows directly in the numbers:
+
+| | SDV (fit + sample) | PySynthData (schema-only) |
+|---|---|---|
+| Generation time | 0.10s (0.08s fit + 0.02s sample) | 0.000s (no fit step) |
+| KS statistic vs real, numeric cols (lower = closer), avg of 5 | 0.091 | 0.149 |
+| Total variation distance vs real, categorical cols, avg of 3 | 0.046 | 0.118 |
+| real `corr(bill_length_mm, body_mass_g)` = 0.589 | 0.601 (preserved) | -0.045 (not preserved — each field is generated independently) |
+
+SDV wins decisively on statistical fidelity to a specific real dataset,
+including real cross-column correlation, because that's literally what it
+was built to do. PySynthData is faster (no model to fit) and gives you
+things SDV's single-table synthesizers don't: real multi-entity foreign-key
+generation across entities in one call, a real epsilon-delta differential-
+privacy budget (`generate_private()`), and chunked/streaming generation
+bounded by `chunk_size` for datasets too large to hold in memory. If your
+goal is "make data that statistically resembles this real dataset," use
+SDV. If your goal is "make realistic-shaped relational data satisfying
+constraints I declare, with real referential integrity and an optional
+privacy budget," that's what PySynthData is actually for.
+
+**Real bug found and fixed while running this benchmark:** every declared
+`enum(...)` value was silently lowercased (`"Adelie"` → `"adelie"`) in
+*both* of this codebase's two independent field-type parsers
+(`src/parser.rs`'s YAML loader and `src/lib.rs`'s `Schema.add_field` Python
+binding — the one every documented example in this README actually uses).
+Root cause: both matched the `enum(` keyword against a lowercased copy of
+the type string, then extracted the enum *values* from that same
+lowercased copy instead of the original. This wasn't just a cosmetic
+casing issue — it collapsed the categorical fidelity comparison above to
+its worst possible value (total variation distance of 1.0, meaning zero
+category overlap with real data) until fixed, because the generated
+`"adelie"`/`"gentoo"`/`"chinstrap"` values shared no labels at all with the
+real `"Adelie"`/`"Gentoo"`/`"Chinstrap"` categories they were supposed to
+approximate. Fixed in both parsers (kept case-insensitive matching on the
+`enum(` keyword itself, e.g. `ENUM(...)` still works); regression tests
+added at both the Rust (`src/parser.rs`) and Python
+(`python/tests/test_enum_casing.py`) level. The categorical TVD numbers in
+the table above are post-fix; pre-fix they were 1.0/1.0 for the two
+enum-typed columns.
+
 ## Roadmap
 
 Implemented behind the Rust `pysynthdata` crate but not yet wired to the Python API: robotics fleet simulation (`robotics.rs`, `ros2_bridge.rs`), behavioral state machines and scenario branching (`behaviors.rs`), a domain knowledge base for schema inference (`research.rs`), drift/anomaly monitoring (`monitoring.rs`), "real world mess" / unconventional-data injectors (`real_world_mess.rs`, `unconventional_data.rs`), and multi-modal (vision/audio/sensor/text/temporal) data augmentation (`multimodal_augmentation.rs`). These have Rust-level test coverage but no Python bindings yet; binding them is future work, not a promised feature of the current release.

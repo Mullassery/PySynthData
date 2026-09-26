@@ -63,9 +63,19 @@ fn parse_field_type(type_str: &str) -> PyResult<FieldType> {
         "uuid" => Ok(FieldType::Uuid),
         "json" => Ok(FieldType::Json),
         s if s.starts_with("enum(") => {
-            let values: Vec<String> = s
-                .trim_start_matches("enum(")
-                .trim_end_matches(')')
+            // `s` is the lowercased copy, used above only to match the
+            // "enum(" keyword case-insensitively. Extracting values from it
+            // too silently lowercased every declared enum value (e.g.
+            // "Adelie" -> "adelie") -- this is the path every documented
+            // `Schema.add_field(..., "enum(...)")` example actually goes
+            // through, so this corrupted the casing of every enum field
+            // generated via the Python API. Slice the ORIGINAL type_str
+            // instead so declared casing is preserved; "enum(" is always 5
+            // ASCII bytes regardless of case, so the byte offset is safe
+            // once `s` has matched.
+            let inner = &type_str[5..];
+            let inner = inner.strip_suffix(')').unwrap_or(inner);
+            let values: Vec<String> = inner
                 .split(',')
                 .map(|v| v.trim().to_string())
                 .collect();

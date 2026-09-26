@@ -156,9 +156,17 @@ impl SchemaParser {
             "uuid" => Ok(FieldType::Uuid),
             "json" => Ok(FieldType::Json),
             s if s.starts_with("enum(") => {
-                let values: Vec<String> = s
-                    .trim_start_matches("enum(")
-                    .trim_end_matches(")")
+                // `s` is the lowercased copy, used above only to match the
+                // "enum(" keyword case-insensitively. Extracting values from
+                // it too silently lowercased every declared enum value
+                // (e.g. "Adelie" -> "adelie"), corrupting exact-match/join
+                // fidelity against any real data the schema was modeling.
+                // Slice the ORIGINAL type_str instead so declared casing is
+                // preserved; "enum(" is always 5 ASCII bytes regardless of
+                // case, so the byte offset is safe once `s` has matched.
+                let inner = &type_str[5..];
+                let inner = inner.strip_suffix(')').unwrap_or(inner);
+                let values: Vec<String> = inner
                     .split(',')
                     .map(|v| v.trim().to_string())
                     .collect();
@@ -190,6 +198,27 @@ mod tests {
         assert_eq!(
             SchemaParser::parse_field_type("boolean").unwrap(),
             FieldType::Boolean
+        );
+    }
+
+    #[test]
+    fn test_parse_field_type_enum_preserves_declared_casing() {
+        // Regression test found via real-world benchmarking against a real
+        // dataset (Palmer Penguins): declared enum values were silently
+        // lowercased ("Adelie" -> "adelie"), corrupting fidelity to any
+        // real data the schema was modeling.
+        assert_eq!(
+            SchemaParser::parse_field_type("enum(Adelie,Gentoo,Chinstrap)").unwrap(),
+            FieldType::Enum(vec![
+                "Adelie".to_string(),
+                "Gentoo".to_string(),
+                "Chinstrap".to_string()
+            ])
+        );
+        // The "enum(" keyword itself still matches case-insensitively.
+        assert_eq!(
+            SchemaParser::parse_field_type("ENUM(Active, Suspended)").unwrap(),
+            FieldType::Enum(vec!["Active".to_string(), "Suspended".to_string()])
         );
     }
 
