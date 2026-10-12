@@ -1,5 +1,7 @@
 # PySynthData
 
+[![Grapify](https://img.shields.io/badge/Grapify-Code%20Scan-purple)](https://grapify.ai)
+
 ## Problem
 
 Testing and demoing data pipelines usually means either using real
