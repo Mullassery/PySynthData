@@ -6,7 +6,7 @@ pub enum WorldCompilerError {
     SchemaError(String),
 
     #[error("Parse error: {0}")]
-    ParseError(#[from] serde_yaml::Error),
+    ParseError(#[from] serde_norway::Error),
 
     #[error("Generation error: {0}")]
     GenerationError(String),

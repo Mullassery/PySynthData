@@ -55,12 +55,12 @@ pub struct SchemaParser;
 impl SchemaParser {
     pub fn from_yaml<P: AsRef<Path>>(path: P) -> Result<Schema, Box<dyn std::error::Error>> {
         let contents = fs::read_to_string(path)?;
-        let yaml_schema: YamlSchema = serde_yaml::from_str(&contents)?;
+        let yaml_schema: YamlSchema = serde_norway::from_str(&contents)?;
         Self::from_parsed(yaml_schema)
     }
 
     pub fn from_yaml_string(yaml_str: &str) -> Result<Schema, Box<dyn std::error::Error>> {
-        let yaml_schema: YamlSchema = serde_yaml::from_str(yaml_str)?;
+        let yaml_schema: YamlSchema = serde_norway::from_str(yaml_str)?;
         Self::from_parsed(yaml_schema)
     }
 
@@ -166,10 +166,7 @@ impl SchemaParser {
                 // case, so the byte offset is safe once `s` has matched.
                 let inner = &type_str[5..];
                 let inner = inner.strip_suffix(')').unwrap_or(inner);
-                let values: Vec<String> = inner
-                    .split(',')
-                    .map(|v| v.trim().to_string())
-                    .collect();
+                let values: Vec<String> = inner.split(',').map(|v| v.trim().to_string()).collect();
                 Ok(FieldType::Enum(values))
             }
             _ => Err(format!("Unknown field type: {}", type_str).into()),

@@ -75,10 +75,7 @@ fn parse_field_type(type_str: &str) -> PyResult<FieldType> {
             // once `s` has matched.
             let inner = &type_str[5..];
             let inner = inner.strip_suffix(')').unwrap_or(inner);
-            let values: Vec<String> = inner
-                .split(',')
-                .map(|v| v.trim().to_string())
-                .collect();
+            let values: Vec<String> = inner.split(',').map(|v| v.trim().to_string()).collect();
             Ok(FieldType::Enum(values))
         }
         other => Err(value_error(format!("Unknown field type: {}", other))),
@@ -107,39 +104,39 @@ fn parse_constraint_type(raw: &str) -> PyResult<ConstraintType> {
 /// Recursively convert a `serde_json::Value` into a native Python object
 /// (dict/list/str/int/float/bool/None) so generated rows are directly usable
 /// from Python without any intermediate stub layer.
-fn json_to_py(py: Python<'_>, value: &serde_json::Value) -> PyResult<PyObject> {
+fn json_to_py(py: Python<'_>, value: &serde_json::Value) -> PyResult<Py<PyAny>> {
     use serde_json::Value;
     match value {
         Value::Null => Ok(py.None()),
-        Value::Bool(b) => Ok(b.into_py(py)),
+        Value::Bool(b) => Ok(b.into_pyobject(py)?.as_any().clone().unbind()),
         Value::Number(n) => {
             if let Some(i) = n.as_i64() {
-                Ok(i.into_py(py))
+                Ok(i.into_pyobject(py)?.into_any().unbind())
             } else if let Some(f) = n.as_f64() {
-                Ok(f.into_py(py))
+                Ok(f.into_pyobject(py)?.into_any().unbind())
             } else {
-                Ok(n.to_string().into_py(py))
+                Ok(n.to_string().into_pyobject(py)?.into_any().unbind())
             }
         }
-        Value::String(s) => Ok(s.into_py(py)),
+        Value::String(s) => Ok(s.clone().into_pyobject(py)?.into_any().unbind()),
         Value::Array(arr) => {
             let mut items = Vec::with_capacity(arr.len());
             for v in arr {
                 items.push(json_to_py(py, v)?);
             }
-            Ok(pyo3::types::PyList::new_bound(py, &items).into_py(py))
+            Ok(pyo3::types::PyList::new(py, items)?.into_any().unbind())
         }
         Value::Object(map) => {
-            let dict = pyo3::types::PyDict::new_bound(py);
+            let dict = pyo3::types::PyDict::new(py);
             for (k, v) in map {
                 dict.set_item(k, json_to_py(py, v)?)?;
             }
-            Ok(dict.into_py(py))
+            Ok(dict.into_any().unbind())
         }
     }
 }
 
-#[pyclass(name = "Schema")]
+#[pyclass(name = "Schema", from_py_object)]
 #[derive(Clone)]
 pub struct PySchema {
     inner: Schema,
@@ -266,25 +263,25 @@ impl PyWorldGenerator {
     /// `quality.fidelity_score` and `quality.constraint_violations` are computed for
     /// real against the schema (nullability, uniqueness, range/length/pattern
     /// constraints) — not hardcoded stubs.
-    fn generate(&self, num_records: usize, seed: u64) -> PyResult<PyObject> {
+    fn generate(&self, num_records: usize, seed: u64) -> PyResult<Py<PyAny>> {
         let world = self
             .inner
             .generate(num_records, seed)
             .map_err(value_error)?;
         let report = self.inner.evaluate(&world);
 
-        Python::with_gil(|py| {
-            let entities_dict = pyo3::types::PyDict::new_bound(py);
+        Python::attach(|py| {
+            let entities_dict = pyo3::types::PyDict::new(py);
             for (entity_name, rows) in &world.entities {
                 let mut py_rows = Vec::with_capacity(rows.len());
                 for row in rows {
                     py_rows.push(json_to_py(py, row)?);
                 }
-                let list = pyo3::types::PyList::new_bound(py, &py_rows);
+                let list = pyo3::types::PyList::new(py, py_rows)?;
                 entities_dict.set_item(entity_name, list)?;
             }
 
-            let metadata = pyo3::types::PyDict::new_bound(py);
+            let metadata = pyo3::types::PyDict::new(py);
             metadata.set_item("seed", world.metadata.seed)?;
             metadata.set_item("record_count", world.metadata.record_count)?;
             metadata.set_item(
@@ -292,19 +289,19 @@ impl PyWorldGenerator {
                 world.metadata.generation_time_ms as u64,
             )?;
 
-            let quality = pyo3::types::PyDict::new_bound(py);
+            let quality = pyo3::types::PyDict::new(py);
             quality.set_item("fidelity_score", report.fidelity_score)?;
             quality.set_item("total_checks", report.total_checks)?;
             quality.set_item("null_violations", report.null_violations)?;
             quality.set_item("uniqueness_violations", report.uniqueness_violations)?;
             quality.set_item("constraint_violations", report.constraint_violations)?;
 
-            let result = pyo3::types::PyDict::new_bound(py);
+            let result = pyo3::types::PyDict::new(py);
             result.set_item("entities", entities_dict)?;
             result.set_item("metadata", metadata)?;
             result.set_item("quality", quality)?;
 
-            Ok(result.into())
+            Ok(result.into_any().unbind())
         })
     }
 
@@ -321,7 +318,7 @@ impl PyWorldGenerator {
         seed: u64,
         budget: &mut PyPrivacyBudget,
         epsilon_to_spend: f64,
-    ) -> PyResult<PyObject> {
+    ) -> PyResult<Py<PyAny>> {
         let mut world = self
             .inner
             .generate(num_records, seed)
@@ -338,18 +335,18 @@ impl PyWorldGenerator {
         )
         .map_err(value_error)?;
 
-        Python::with_gil(|py| {
-            let entities_dict = pyo3::types::PyDict::new_bound(py);
+        Python::attach(|py| {
+            let entities_dict = pyo3::types::PyDict::new(py);
             for (entity_name, rows) in &world.entities {
                 let mut py_rows = Vec::with_capacity(rows.len());
                 for row in rows {
                     py_rows.push(json_to_py(py, row)?);
                 }
-                let list = pyo3::types::PyList::new_bound(py, &py_rows);
+                let list = pyo3::types::PyList::new(py, py_rows)?;
                 entities_dict.set_item(entity_name, list)?;
             }
 
-            let metadata = pyo3::types::PyDict::new_bound(py);
+            let metadata = pyo3::types::PyDict::new(py);
             metadata.set_item("seed", world.metadata.seed)?;
             metadata.set_item("record_count", world.metadata.record_count)?;
             metadata.set_item(
@@ -357,14 +354,14 @@ impl PyWorldGenerator {
                 world.metadata.generation_time_ms as u64,
             )?;
 
-            let quality = pyo3::types::PyDict::new_bound(py);
+            let quality = pyo3::types::PyDict::new(py);
             quality.set_item("fidelity_score", report.fidelity_score)?;
             quality.set_item("total_checks", report.total_checks)?;
             quality.set_item("null_violations", report.null_violations)?;
             quality.set_item("uniqueness_violations", report.uniqueness_violations)?;
             quality.set_item("constraint_violations", report.constraint_violations)?;
 
-            let privacy_dict = pyo3::types::PyDict::new_bound(py);
+            let privacy_dict = pyo3::types::PyDict::new(py);
             privacy_dict.set_item("epsilon_spent", privacy_report.epsilon_spent)?;
             privacy_dict.set_item("delta_spent", privacy_report.delta_spent)?;
             privacy_dict.set_item(
@@ -378,13 +375,13 @@ impl PyWorldGenerator {
             privacy_dict.set_item("values_perturbed", privacy_report.values_perturbed)?;
             privacy_dict.set_item("budget_remaining_epsilon", budget.inner.remaining_epsilon())?;
 
-            let result = pyo3::types::PyDict::new_bound(py);
+            let result = pyo3::types::PyDict::new(py);
             result.set_item("entities", entities_dict)?;
             result.set_item("metadata", metadata)?;
             result.set_item("quality", quality)?;
             result.set_item("privacy", privacy_dict)?;
 
-            Ok(result.into())
+            Ok(result.into_any().unbind())
         })
     }
 
@@ -402,16 +399,16 @@ impl PyWorldGenerator {
         num_records: usize,
         seed: u64,
         chunk_size: usize,
-        on_chunk: PyObject,
-    ) -> PyResult<PyObject> {
+        on_chunk: Py<PyAny>,
+    ) -> PyResult<Py<PyAny>> {
         let metadata = py
-            .allow_threads(|| -> anyhow::Result<generator::WorldMetadata> {
+            .detach(|| -> anyhow::Result<generator::WorldMetadata> {
                 self.inner.generate_streaming(
                     num_records,
                     seed,
                     chunk_size,
                     |entity_name, chunk| {
-                        Python::with_gil(|py| -> anyhow::Result<()> {
+                        Python::attach(|py| -> anyhow::Result<()> {
                             let mut py_rows = Vec::with_capacity(chunk.len());
                             for row in chunk {
                                 py_rows.push(
@@ -419,7 +416,7 @@ impl PyWorldGenerator {
                                         .map_err(|e| anyhow::anyhow!(e.to_string()))?,
                                 );
                             }
-                            let list = pyo3::types::PyList::new_bound(py, &py_rows);
+                            let list = pyo3::types::PyList::new(py, py_rows)?;
                             on_chunk
                                 .call1(py, (entity_name, list))
                                 .map_err(|e| anyhow::anyhow!(e.to_string()))?;
@@ -430,12 +427,12 @@ impl PyWorldGenerator {
             })
             .map_err(value_error)?;
 
-        Python::with_gil(|py| {
-            let metadata_dict = pyo3::types::PyDict::new_bound(py);
+        Python::attach(|py| {
+            let metadata_dict = pyo3::types::PyDict::new(py);
             metadata_dict.set_item("seed", metadata.seed)?;
             metadata_dict.set_item("record_count", metadata.record_count)?;
             metadata_dict.set_item("generation_time_ms", metadata.generation_time_ms as u64)?;
-            Ok(metadata_dict.into())
+            Ok(metadata_dict.into_any().unbind())
         })
     }
 }
