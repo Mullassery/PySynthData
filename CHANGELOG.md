@@ -75,3 +75,8 @@ for the real commit history).
 
 See `ROADMAP_HONEST.md` for what is and isn't implemented, and for
 technical-debt items intentionally left unfixed in this pass.
+## [0.5.1] - 2026-10-17
+
+### Fixed
+- Audit remediation: security hardening, correctness fixes, and lint/CI gates.
+
