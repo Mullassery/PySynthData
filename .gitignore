@@ -13,4 +13,4 @@ venv/
 .mypy_cache/
 *.bak
 
-graphify-out/
+codeatlas-out/
