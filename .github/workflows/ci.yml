@@ -64,7 +64,7 @@ jobs:
           echo "$PWD/.venv/bin" >> "$GITHUB_PATH"
       - run: pip install maturin
       - run: maturin develop --release
-      - run: pip install -e ".[dev,db]"
+      - run: pip install -e ".[dev,db,config]"
       - run: pytest python/tests -v
 
   python-lint:

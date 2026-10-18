@@ -75,6 +75,11 @@ for the real commit history).
 
 See `ROADMAP_HONEST.md` for what is and isn't implemented, and for
 technical-debt items intentionally left unfixed in this pass.
+## [0.5.2] - 2026-10-18
+
+### Fixed
+- Include `pyyaml>=6.0` in `[project.optional-dependencies.dev]` and CI test install so `test_db_schema.py` collects cleanly in CI (RECHECK-037).
+
 ## [0.5.1] - 2026-10-17
 
 ### Fixed
