@@ -129,6 +129,11 @@ report = analyzer.analyze(df, entity_name="customers")
 print(report)
 ```
 
+## Queue status
+
+Shipped, blocked/failed, and rejected work for this repository is documented in
+[`QUEUE_STATUS.md`](QUEUE_STATUS.md).
+
 ## Documentation
 
 - [Examples](examples/)
