@@ -33,6 +33,76 @@ def _cmd_infer_schema(args: argparse.Namespace) -> int:
     return 0
 
 
+def _cmd_generate(args: argparse.Namespace) -> int:
+    try:
+        from pathlib import Path
+
+        from pysynthdata.api import PrivacyBudget, WorldGenerator, load_schema
+    except ImportError as exc:
+        print(f"error: {exc}", file=sys.stderr)
+        return 1
+
+    try:
+        schema = load_schema(args.schema)
+        generator = WorldGenerator(schema)
+        if args.dp_epsilon is not None:
+            budget = PrivacyBudget(epsilon=args.dp_epsilon, delta=args.dp_delta)
+            world = generator.generate_private(
+                args.rows, args.seed, budget, args.dp_epsilon
+            )
+        else:
+            world = generator.generate(args.rows, args.seed)
+    except Exception as exc:
+        print(f"error: {exc}", file=sys.stderr)
+        return 1
+
+    if args.faker:
+        try:
+            from pysynthdata.faker_fields import apply_faker_fields, parse_spec
+
+            apply_faker_fields(
+                world,
+                [parse_spec(value) for value in args.faker],
+                seed=args.seed,
+            )
+        except Exception as exc:
+            print(f"error: {exc}", file=sys.stderr)
+            return 1
+
+    out_dir = Path(args.out)
+    out_dir.mkdir(parents=True, exist_ok=True)
+    try:
+        if args.format == "parquet":
+            world.to_parquet(str(out_dir))
+            written = {name: str(out_dir / f"{name}.parquet") for name in world.data}
+        elif args.format == "csv":
+            written = {}
+            for name in world.data:
+                path = out_dir / f"{name}.csv"
+                world.to_pandas(name).to_csv(path, index=False)
+                written[name] = str(path)
+        else:
+            written = {}
+            for name in world.data:
+                path = out_dir / f"{name}.json"
+                path.write_text(
+                    __import__("json").dumps(world.data[name], default=str, indent=2),
+                    encoding="utf-8",
+                )
+                written[name] = str(path)
+    except Exception as exc:
+        print(f"error: writing output failed: {exc}", file=sys.stderr)
+        return 1
+
+    print(f"Generated {args.rows} rows/entity (seed={args.seed}) -> {out_dir}")
+    for name, path in written.items():
+        print(f"  {name}: {path}")
+    print(f"fidelity_score={world.fidelity_score:.4f} violations={world.constraint_violations}")
+    if world.privacy_report:
+        print(f"privacy={world.privacy_report}")
+    return 0
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="pysynthdata", description="PySynthData command-line tools"
@@ -70,6 +140,40 @@ def build_parser() -> argparse.ArgumentParser:
         "--output", required=True, help="Path to write the inferred YAML schema to"
     )
     infer_parser.set_defaults(func=_cmd_infer_schema)
+
+    generate_parser = subparsers.add_parser(
+        "generate",
+        help="Generate synthetic rows from a schema and export them",
+        description=(
+            "Generate relational synthetic data from a pysynthdata YAML/JSON "
+            "schema and write CSV, JSON or Parquet files per entity. Optional "
+            "differential privacy uses the Rust Laplace mechanism."
+        ),
+    )
+    generate_parser.add_argument("schema", help="Path to the YAML/JSON schema")
+    generate_parser.add_argument("--out", required=True, help="Output directory")
+    generate_parser.add_argument("--rows", type=int, default=1000, help="Rows per entity")
+    generate_parser.add_argument("--seed", type=int, default=42, help="Deterministic seed")
+    generate_parser.add_argument(
+        "--format", choices=["csv", "json", "parquet"], default="parquet"
+    )
+    generate_parser.add_argument(
+        "--dp-epsilon",
+        type=float,
+        default=None,
+        help="Enable differential privacy with this epsilon (numeric fields only)",
+    )
+    generate_parser.add_argument(
+        "--dp-delta", type=float, default=0.0, help="Delta for the privacy budget"
+    )
+    generate_parser.add_argument(
+        "--faker",
+        action="append",
+        default=[],
+        metavar="Entity.field=provider",
+        help="Fill a field with a Faker provider, e.g. Customer.email=email",
+    )
+    generate_parser.set_defaults(func=_cmd_generate)
 
     return parser
 

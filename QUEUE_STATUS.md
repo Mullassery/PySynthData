@@ -3,7 +3,8 @@
 This file records what was shipped, what is blocked/failed, and what is rejected for this repository. It complements `AUDIT_FINDINGS.md`.
 
 ## Shipped
-- No code changes; audit/bundle docs added.
+- `pysynthdata generate` CLI with CSV/JSON/Parquet export and optional differential privacy.
+- Optional Faker-backed field enrichment (`pysynthdata[faker]`).
 
 ## Blocked / failed
 - Linux/Windows wheels, expose Rust components, SDV fidelity/privacy benchmark.

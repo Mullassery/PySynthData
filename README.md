@@ -34,6 +34,37 @@ PySynthData generates realistic synthetic relational data from a declarative sch
 
 Version 0.5.0 (published to PyPI). Core pipeline (schema definition, row generation, FKs, constraints, quality scoring, exports, differential privacy, streaming, schema inference) is implemented and tested. See [ROADMAP_HONEST.md](ROADMAP_HONEST.md) for unexposed work and limitations.
 
+## Faker-backed fields
+
+Fill selected fields with locale-aware Faker providers after the Rust generator
+has preserved relationships/constraints:
+
+```bash
+pip install "pysynthdata[faker]"
+pysynthdata generate schema.yaml --out ./data --rows 100 \
+  --faker Customer.name=name --faker Customer.email=email
+```
+
+`apply_faker_fields()`/`FakerFieldSpec` are also available from Python. Missing
+Faker raises `FakerUnavailable` rather than silently leaving blanks.
+
+## Generate from the CLI
+
+The CLI is no longer limited to schema inference:
+
+```bash
+pysynthdata generate examples/banking_schema.yaml \
+  --out ./synthetic --rows 10000 --seed 42 --format parquet
+
+# Differential privacy (numeric fields)
+pysynthdata generate schema.yaml --out ./dp --rows 5000 \
+  --format json --dp-epsilon 1.0
+```
+
+`generate` loads YAML/JSON schemas, preserves FK relationships/constraints,
+and writes one file per entity as CSV, JSON or Parquet. It prints the real
+fidelity score, constraint-violation count, and privacy spend when enabled.
+
 ## Installation
 
 ```bash
