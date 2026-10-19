@@ -129,6 +129,16 @@ report = analyzer.analyze(df, entity_name="customers")
 print(report)
 ```
 
+## Known issues and deferred work
+
+**Blocked / failed:**
+- Linux/Windows wheels, expose Rust components, SDV fidelity/privacy benchmark.
+
+**Rejected / deferred:**
+- SDV/CTGAN parity.
+
+Full shipped/blocked/rejected detail: [`QUEUE_STATUS.md`](QUEUE_STATUS.md).
+
 ## Queue status
 
 Shipped, blocked/failed, and rejected work for this repository is documented in
