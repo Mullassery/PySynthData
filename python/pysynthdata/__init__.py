@@ -8,6 +8,15 @@ scoring.
 __version__ = "0.5.2"
 
 from pysynthdata import _core
+from pysynthdata._core import (
+    AuditEvent,
+    AuditEventType,
+    DataGovernanceManager,
+    DataGovernancePolicy,
+    DataQualityAnalyzer,
+    DataQualityMetrics,
+    OutlierPattern,
+)
 from pysynthdata.api import (
     WorldGenerator,
     Schema,
@@ -19,6 +28,13 @@ from pysynthdata.api import (
 )
 
 __all__ = [
+    "AuditEvent",
+    "AuditEventType",
+    "DataGovernanceManager",
+    "DataGovernancePolicy",
+    "DataQualityAnalyzer",
+    "DataQualityMetrics",
+    "OutlierPattern",
     "WorldGenerator",
     "Schema",
     "GeneratedWorld",
