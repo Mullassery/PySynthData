@@ -4,7 +4,7 @@ build-backend = "maturin"
 
 [project]
 name = "pysynthdata"
-version = "0.5.2"
+version = "0.5.3"
 description = "Generate synthetic relational datasets from a schema: real row generation, foreign keys, constraints, and quality scoring."
 readme = "README.md"
 license = "Apache-2.0"

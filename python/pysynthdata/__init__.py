@@ -5,7 +5,7 @@ Rust `_core` extension, which does the actual row generation and quality
 scoring.
 """
 
-__version__ = "0.5.2"
+__version__ = "0.5.3"
 
 from pysynthdata import _core
 from pysynthdata._core import (

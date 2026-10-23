@@ -75,6 +75,11 @@ for the real commit history).
 
 See `ROADMAP_HONEST.md` for what is and isn't implemented, and for
 technical-debt items intentionally left unfixed in this pass.
+## [0.5.3] - 2026-10-23
+
+### Added
+- Exported governance and quality native types from the public API.
+
 ## [0.5.2] - 2026-10-18
 
 ### Fixed
