@@ -40,7 +40,7 @@ for the real commit history).
   while `Cargo.toml`/`pyproject.toml` were both at `0.5.0`. Bumped to
   `"0.5.0"` to match.
 - Fixed all 19 `ruff` E501 (line-too-long) findings flagged in
-  `ROADMAP_HONEST.md`: 15 in `pysynthdata/_mcp_tools.py` (wrapped long
+  `docs/internal/ROADMAP_HONEST.md`: 15 in `pysynthdata/_mcp_tools.py` (wrapped long
   MCP tool-schema dict literals and f-string error messages across
   multiple lines), 2 in `python/pysynthdata/api.py` (wrapped docstring
   `>>> ` example lines), 1 in
@@ -56,7 +56,7 @@ for the real commit history).
 
 ### Added
 - `CONTRIBUTING.md`, `SECURITY.md`, `CODE_OF_CONDUCT.md`,
-  `ROADMAP_HONEST.md`, `.github/dependabot.yml`,
+  `docs/internal/ROADMAP_HONEST.md`, `.github/dependabot.yml`,
   `.github/ISSUE_TEMPLATE/bug_report.yml`,
   `.github/ISSUE_TEMPLATE/feature_request.yml`,
   `.github/pull_request_template.md`.
@@ -71,9 +71,9 @@ for the real commit history).
   and `mypy` separately still have real, pre-existing debt (5 files need
   reformatting under `black`; 29 `mypy --strict` errors), so only `ruff` was
   wired into CI as a gate; `black`/`mypy` are left as documented, unenforced
-  debt in `ROADMAP_HONEST.md`.
+  debt in `docs/internal/ROADMAP_HONEST.md`.
 
-See `ROADMAP_HONEST.md` for what is and isn't implemented, and for
+See `docs/internal/ROADMAP_HONEST.md` for what is and isn't implemented, and for
 technical-debt items intentionally left unfixed in this pass.
 ## [0.5.3] - 2026-10-23
 

@@ -1,5 +1,11 @@
 # PySynthData
 
+[![CI](https://github.com/Mullassery/PySynthData/actions/workflows/ci.yml/badge.svg)](https://github.com/Mullassery/PySynthData/actions/workflows/ci.yml)
+[![PyPI](https://img.shields.io/pypi/v/pysynthdata.svg)](https://pypi.org/project/pysynthdata/)
+[![Python](https://img.shields.io/pypi/pyversions/pysynthdata.svg)](https://pypi.org/project/pysynthdata/)
+[![License](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](./LICENSE)
+[![Rust](https://img.shields.io/badge/rust-stable-orange.svg)](https://www.rust-lang.org/)
+
 A Rust-native library for generating synthetic relational datasets from a schema: real row generation with foreign keys, constraints, differential privacy support, and quality scoring.
 
 ## What it is
@@ -32,7 +38,7 @@ PySynthData generates realistic synthetic relational data from a declarative sch
 
 ## Project status
 
-Version 0.5.0 (published to PyPI). Core pipeline (schema definition, row generation, FKs, constraints, quality scoring, exports, differential privacy, streaming, schema inference) is implemented and tested. See [ROADMAP_HONEST.md](ROADMAP_HONEST.md) for unexposed work and limitations.
+Version 0.5.0 (published to PyPI). Core pipeline (schema definition, row generation, FKs, constraints, quality scoring, exports, differential privacy, streaming, schema inference) is implemented and tested. See [docs/internal/ROADMAP_HONEST.md](docs/internal/ROADMAP_HONEST.md) for unexposed work and limitations.
 
 ## Faker-backed fields
 
@@ -168,12 +174,12 @@ print(report)
 **Rejected / deferred:**
 - SDV/CTGAN parity.
 
-Full shipped/blocked/rejected detail: [`QUEUE_STATUS.md`](QUEUE_STATUS.md).
+Full shipped/blocked/rejected detail: [`docs/internal/QUEUE_STATUS.md`](docs/internal/QUEUE_STATUS.md).
 
 ## Documentation
 
 - [Examples](examples/)
-- [Roadmap & honest limitations](ROADMAP_HONEST.md)
+- [Roadmap & honest limitations](docs/internal/ROADMAP_HONEST.md)
 - [Contributing](CONTRIBUTING.md)
 - [Security policy](SECURITY.md)
 - [Code of conduct](CODE_OF_CONDUCT.md)

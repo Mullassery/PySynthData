@@ -47,7 +47,7 @@ ruff check python/ pysynthdata/
 
 This project has a history of having fabricated/compliance-theater code
 removed (see `git log` for "compliance theater" and boilerplate-contamination
-cleanups, and `CHANGELOG.md`/`ROADMAP_HONEST.md` for the most recent pass).
+cleanups, and `CHANGELOG.md`/`docs/internal/ROADMAP_HONEST.md` for the most recent pass).
 Concretely:
 
 - Do not add a function that returns a hardcoded or plausible-looking number

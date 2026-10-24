@@ -12,6 +12,6 @@
       underlying capability isn't implemented, it returns an explicit
       `not_implemented` status with a reason instead.
 - [ ] If this exposes a Rust module to Python for the first time, updated
-      `README.md`'s Roadmap section and `ROADMAP_HONEST.md` to reflect it's
+      `README.md`'s Roadmap section and `../docs/internal/ROADMAP_HONEST.md` to reflect it's
       no longer Rust-only.
 - [ ] Updated `CHANGELOG.md`'s `[Unreleased]` section.

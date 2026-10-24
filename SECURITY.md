@@ -32,7 +32,7 @@ library and people may reach for it thinking it does more than it does:
   implemented. There is no Rényi DP accountant, so repeated queries against
   the same budget are more conservative (spend faster) than a tighter
   accountant would allow. This is a real gap, not a bug, and is tracked in
-  `ROADMAP_HONEST.md`.
+  `docs/internal/ROADMAP_HONEST.md`.
 - **This package makes no compliance claims.** `check_privacy_compliance`,
   `detect_pii_exposure`, `anonymize_dataset` (k-anonymity/l-diversity/
   t-closeness), and `check_fairness_bias` all explicitly return
