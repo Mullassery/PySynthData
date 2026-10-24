@@ -5,7 +5,7 @@ body:
   - type: markdown
     attributes:
       value: >-
-        Before filing: check `ROADMAP_HONEST.md` — several features
+        Before filing: check `docs/internal/ROADMAP_HONEST.md` — several features
         (robotics simulation, ROS2 bridge, behavioral state machines,
         monitoring/drift detection, multimodal augmentation) already exist
         in the Rust core but aren't exposed through the Python API yet.
