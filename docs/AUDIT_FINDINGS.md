@@ -1,6 +1,6 @@
 # Audit Report: pysynthdata
 Date: 2026-10-26 | Type: Read-only systems design audit  
-Repo: https://github.com/Mullassery/PySynthData.git (local: /Users/georgimullassery/Desktop/Projects/pysynthdata) | Branch: main | Status: clean
+Repo: ../PySynthData (local: /Users/georgimullassery/Desktop/Projects/pysynthdata) | Branch: main | Status: clean
 
 ## Overview
 Rust-native library for generating synthetic relational datasets from schema. Foreign keys, constraints, differential privacy (Laplace), quality scoring, streaming, exports (Pandas/Parquet/JSON), schema inference from Postgres/MySQL/SQLite.

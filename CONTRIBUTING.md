@@ -3,7 +3,7 @@
 ## Setup
 
 ```bash
-git clone https://github.com/Mullassery/PySynthData.git
+git clone ../PySynthData
 cd PySynthData
 pip install maturin
 maturin develop --release      # builds the Rust extension into your active venv

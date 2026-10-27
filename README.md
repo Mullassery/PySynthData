@@ -1,6 +1,6 @@
 # PySynthData
 
-[![CI](https://github.com/Mullassery/PySynthData/actions/workflows/ci.yml/badge.svg)](https://github.com/Mullassery/PySynthData/actions/workflows/ci.yml)
+[![CI](../PySynthData/actions/workflows/ci.yml/badge.svg)](../PySynthData/actions/workflows/ci.yml)
 [![PyPI](https://img.shields.io/pypi/v/pysynthdata.svg)](https://pypi.org/project/pysynthdata/)
 [![Python](https://img.shields.io/pypi/pyversions/pysynthdata.svg)](https://pypi.org/project/pysynthdata/)
 [![License](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](./LICENSE)
@@ -188,14 +188,14 @@ Full shipped/blocked/rejected detail: [`docs/internal/QUEUE_STATUS.md`](docs/int
 
 Part of the Mullassery open-source family:
 
-- [PyDependencyCheck](https://github.com/Mullassery/PyDependencyCheck) — dependency intelligence and supply-chain integrity
-- [PyDBTGuard](https://github.com/Mullassery/PyDBTGuard) — dbt manifest analysis (risky tests, blast radius, cost)
-- [PyAirflowTester](https://github.com/Mullassery/PyAirflowTester) — Airflow and dbt reliability platform
-- [StatGuardian](https://github.com/Mullassery/StatGuardian) — declarative data-quality framework
-- [PySynthData](https://github.com/Mullassery/PySynthData) — synthetic data generation for ML
-- [PyReverseETL](https://github.com/Mullassery/PyReverseETL) — quality-validated reverse ETL
-- [PyWeatherEnriched](https://github.com/Mullassery/PyWeatherEnriched) — weather-enriched feature engineering
-- [Browse all projects](https://github.com/Mullassery?tab=repositories)
+- [PyDependencyCheck](../PyDependencyCheck) — dependency intelligence and supply-chain integrity
+- [PyDBTGuard](../PyDBTGuard) — dbt manifest analysis (risky tests, blast radius, cost)
+- [PyAirflowTester](../PyAirflowTester) — Airflow and dbt reliability platform
+- [StatGuardian](../StatGuardian) — declarative data-quality framework
+- [PySynthData](../PySynthData) — synthetic data generation for ML
+- [PyReverseETL](../PyReverseETL) — quality-validated reverse ETL
+- [PyWeatherEnriched](../PyWeatherEnriched) — weather-enriched feature engineering
+- [Browse all projects](../Mullassery-profile)
 
 ## License
 
